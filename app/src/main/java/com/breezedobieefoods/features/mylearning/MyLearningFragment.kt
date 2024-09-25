@@ -1,11 +1,16 @@
 package com.breezedobieefoods.features.mylearning
+
+import android.app.Activity
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.os.Handler
 import android.view.LayoutInflater
 import android.view.View
 import android.view.View.OnClickListener
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -24,8 +29,6 @@ import com.breezedobieefoods.base.BaseResponse
 import com.breezedobieefoods.base.presentation.BaseActivity
 import com.breezedobieefoods.base.presentation.BaseFragment
 import com.breezedobieefoods.features.dashboard.presentation.DashboardActivity
-import com.breezedobieefoods.features.mylearning.SearchLmsLearningFrag.Companion.topic_id
-import com.breezedobieefoods.features.mylearning.SearchLmsLearningFrag.Companion.topic_name
 import com.breezedobieefoods.features.mylearning.apiCall.LMSRepoProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -34,10 +37,13 @@ import com.google.android.material.progressindicator.LinearProgressIndicator
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
+
+
 class MyLearningFragment : BaseFragment(),OnClickListener {
     private lateinit var mContext: Context
     private lateinit var bottomNavigation: MeowBottomNavigation
-    private lateinit var cv_lms_learner_space: CardView
+    private lateinit var cv_lms_learner_space: LinearLayout
+    private lateinit var ll_lms_dash_performance_ins: LinearLayout
     private lateinit var cv_lms_leaderboard: CardView
     private lateinit var ll_knowledgeHub: LinearLayout
     private lateinit var ll_myLearning: LinearLayout
@@ -64,6 +70,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
     private lateinit var tv_content_learning: TextView
     private lateinit var tv_content_knowledge: TextView
     lateinit var courseList: List<LmsSearchData>
+    lateinit var courseListLearning: List<LmsSearchData>
     private lateinit var final_dataL: ArrayList<LarningList>
 
     private lateinit var cv_last_vid_root:CardView
@@ -86,6 +93,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
     ): View? {
         super.onCreateView(inflater, container, savedInstanceState)
         val view = inflater!!.inflate(R.layout.fragment_my_learning, container, false)
+        //(context as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         initView(view)
        /* requireActivity().getOnBackPressedDispatcher()
             .addCallback(object : OnBackPressedCallback(true) {
@@ -98,6 +106,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
     }
 
     private fun initView(view: View) {
+
         //performance
         ll_lms_performance = view.findViewById(R.id.ll_lms_performance)
         iv_lms_performance = view.findViewById(R.id.iv_lms_performance)
@@ -120,21 +129,22 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
       //  sc_vw = view.findViewById(R.id.sc_vw)
 
         iv_lms_leaderboard.setImageResource(R.drawable.leaderboard_new)
-        iv_lms_performance.setImageResource(R.drawable.performance_black)
-        iv_lms_mylearning.setImageResource(R.drawable.my_learning_black)
-        iv_lms_knowledgehub.setImageResource(R.drawable.all_topic_black)
+        iv_lms_performance.setImageResource(R.drawable.performance_insights)
+        iv_lms_mylearning.setImageResource(R.drawable.my_topics_selected)
+        iv_lms_knowledgehub.setImageResource(R.drawable.set_of_books_lms)
 
-        iv_lms_leaderboard.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_performance.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_mylearning.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_knowledgehub.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        //iv_lms_leaderboard.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        //iv_lms_performance.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        //iv_lms_mylearning.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        //iv_lms_knowledgehub.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
 
         tv_lms_performance.setTextColor(getResources().getColor(R.color.black))
-        tv_lms_mylearning.setTextColor(getResources().getColor(R.color.black))
+        tv_lms_mylearning.setTextColor(getResources().getColor(R.color.toolbar_lms))
         tv_lms_leaderboard.setTextColor(getResources().getColor(R.color.black))
         tv_lms_knowledgehub.setTextColor(getResources().getColor(R.color.black))
 
         cv_lms_learner_space = view.findViewById(R.id.cv_lms_learner_space)
+        ll_lms_dash_performance_ins = view.findViewById(R.id.ll_lms_dash_performance_ins)
         ll_knowledgeHub = view.findViewById(R.id.ll_frag_search_knowledge_hub_root)
         ll_myLearning = view.findViewById(R.id.ll_frag_search_mylearning_root)
         cv_frag_search_mylearning_root = view.findViewById(R.id.cv_frag_search_mylearning_root)
@@ -197,6 +207,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
             }
 
             cv_last_vid_root.setOnClickListener {
+                setHomeClickFalse()
                 VideoPlayLMS.loadedFrom = "LMSDASHBOARD"
                 CustomStatic.VideoPosition = Pref.LastVideoPlay_VidPosition.toInt()
                 Pref.videoCompleteCount = "0"
@@ -208,7 +219,12 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
 
 
         cv_lms_learner_space.setOnClickListener {
+            setHomeClickFalse()
             (mContext as DashboardActivity).loadFragment(FragType.SearchLmsFrag, true, "")
+        }
+        ll_lms_dash_performance_ins.setOnClickListener {
+            setHomeClickFalse()
+            (mContext as DashboardActivity).loadFragment(FragType.PerformanceInsightPage, true, "")
         }
 
         ll_knowledgeHub.setOnClickListener(this)
@@ -223,8 +239,9 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
         if (AppUtils.isOnline(mContext)) {
            // sc_vw.visibility =View.VISIBLE
             bottom_layout_lms_LL.visibility =View.VISIBLE
+            //assigned topic & all topic count from API calling
             getTopicLAssigened()
-           // getMyLarningTopicListInfoAPI()
+            getTopicLearningAssigened()
             getTopicL()
         }else{
           //  sc_vw.visibility =View.GONE
@@ -232,7 +249,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
             (mContext as DashboardActivity).showSnackMessage(getString(R.string.no_internet))
 
         }
-
+        // code start for after first login auto play content from dashboard screen which from assigned topics
         Handler().postDelayed(Runnable {
             if(Pref.FirstLogiForTheDayTag){
                 Pref.FirstLogiForTheDayTag = false
@@ -242,6 +259,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                     CustomStatic.VideoPosition = Pref.LastVideoPlay_VidPosition.toInt()
                     Pref.videoCompleteCount = "0"
                     Handler().postDelayed(Runnable {
+                        setHomeClickFalse()
                         (mContext as DashboardActivity).loadFragment(FragType.VideoPlayLMS, true, Pref.LastVideoPlay_TopicID +"~"+ Pref.LastVideoPlay_TopicName/*+"~"+position*/)
                     }, 1000)
                 }else{
@@ -253,8 +271,10 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                 }
             }
         }, 600)
+        // code end for after first login auto play content from dashboard screen which from assigned topics
 
         if (Pref.like_count!=0 || Pref.comment_count!=0 || Pref.share_count!=0 || Pref.correct_answer_count!=0 || Pref.wrong_answer_count!=0){
+               //API calling for Content like/comment/share/watch count (ContentCountSave) -- for leaderboard
                 contentCountSaveAPICalling()
         }
 
@@ -264,6 +284,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
 
     override fun onResume() {
         super.onResume()
+        //code start for Notification count show from room db
         try {
             var votVIwedL = AppDatabase.getDBInstance()!!.lmsNotiDao().getNotViwed(false) as ArrayList<LMSNotiEntity>
             if(votVIwedL.size !=0){
@@ -275,6 +296,17 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        //code end for Notification count show from room db
+
+
+        //code start for update bookmark count show mantis -
+        try {
+            (mContext as DashboardActivity).updateBookmarkCnt()
+        } catch (e: Exception) {
+            Pref.CurrentBookmarkCount = 0
+        }
+        //code start for update bookmark count show mantis -
     }
 
     private fun contentCountSaveAPICalling() {
@@ -306,6 +338,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                                 Pref.share_count = 0
                                 Pref.correct_answer_count = 0
                                 Pref.wrong_answer_count = 0
+                                Pref.content_watch_count = 0
                             }catch (ex:Exception){
                                 ex.printStackTrace()
                             }
@@ -334,18 +367,23 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                     .subscribeOn(Schedulers.io())
                     .subscribe({ result ->
                         val response = result as TopicListResponse
+                        //var responseF = response.topic_list.filter { it.topic_parcentage !=0 }
                         if (response.status == NetworkConstant.SUCCESS) {
                             courseList = ArrayList<LmsSearchData>()
+                            courseListLearning = ArrayList<LmsSearchData>()
                             for (i in 0..response.topic_list.size - 1) {
                                 if (response.topic_list.get(i).video_count!= 0) {
-                                    courseList = courseList + LmsSearchData(
-                                        response.topic_list.get(i).topic_id.toString(),
-                                        response.topic_list.get(i).topic_name
-                                    )
+                                   // if (response.topic_list.get(i).topic_parcentage!= 0) {
+                                        courseList = courseList + LmsSearchData(
+                                            response.topic_list.get(i).topic_id.toString(),
+                                            response.topic_list.get(i).topic_name
+                                        )
+                                   // }
                                 }
                             }
-                            tv_content.setText(courseList.size.toString()+" Topics")
-                            tv_content_learning.setText(courseList.size.toString()+" Topics")
+                            //tv_content.setText(courseList.size.toString()+" Topics")
+                            tv_content.setText(courseList.size.toString())
+                            //tv_content_learning.setText(courseListLearning.size.toString()+" Topics")
 
                            /* val fullText = tv_content.text.toString()
                             val parts = fullText.split("\n")
@@ -390,32 +428,37 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
         }
     }
 
-    private fun getMyLarningTopicListInfoAPI() {
+    fun getTopicLearningAssigened() {
         try {
             Timber.d("deleteImei call" + AppUtils.getCurrentDateTime())
             val repository = LMSRepoProvider.getTopicList()
             BaseActivity.compositeDisposable.add(
-                repository.getTopics("0")
+                repository.getTopics(Pref.user_id!!)
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribeOn(Schedulers.io())
                     .subscribe({ result ->
                         val response = result as TopicListResponse
+                        //var responseF = response.topic_list.filter { it.topic_parcentage !=0 }
                         if (response.status == NetworkConstant.SUCCESS) {
                             courseList = ArrayList<LmsSearchData>()
+                            courseListLearning = ArrayList<LmsSearchData>()
                             for (i in 0..response.topic_list.size - 1) {
-                                if (response.topic_list.get(i).video_count!= 0 && response.topic_list.get(i).topic_parcentage!=0) {
-                                    courseList = (courseList + LmsSearchData(
-                                        response.topic_list.get(i).topic_id.toString(),
-                                        response.topic_list.get(i).topic_name,
-                                        response.topic_list.get(i).video_count,
-                                        response.topic_list.get(i).topic_parcentage
-                                    )) as ArrayList<LmsSearchData>
+                                if (response.topic_list.get(i).video_count!= 0) {
+                                    if (response.topic_list.get(i).topic_parcentage!= 0) {
+                                        courseListLearning = courseListLearning + LmsSearchData(
+                                            response.topic_list.get(i).topic_id.toString(),
+                                            response.topic_list.get(i).topic_name
+                                        )
+                                    }
+
                                 }
                             }
-                            tv_content_learning.setText(courseList.size.toString())
+                            //tv_content.setText(courseList.size.toString()+" Topics")
+                            tv_content_learning.setText(courseListLearning.size.toString()+" Topics")
+                            CustomStatic.MyLearningTopicCount = courseListLearning.size
 
                         }else{
-                          //  (mContext as DashboardActivity).showSnackMessage(getString(R.string.no_data_found))
+                            //(mContext as DashboardActivity).showSnackMessage(getString(R.string.no_data_found))
 
                         }
                     }, { error ->
@@ -448,33 +491,8 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                                     )
                                 }
                             }
-                           tv_content_knowledge.setText(courseList.size.toString()+" Topics"/*+"\nContents"*/)
-                            /*val fullText2 = tv_content_knowledge.text.toString()
-                           val parts2 = fullText2.split("\n")
-
-                           val largeText2 = parts2[0]
-                           val smallText2 = parts2[1]
-                           val spannableString2 = SpannableString(fullText2)
-                           spannableString2.setSpan(
-                               RelativeSizeSpan(1.2f), // 4 times the default size
-                               0,
-                               largeText2.length,
-                               Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                           )
-                           spannableString2.setSpan(
-                               StyleSpan(Typeface.BOLD),
-                               0,
-                               largeText2.length,
-                               Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                           )
-                           spannableString2.setSpan(
-                               RelativeSizeSpan(0.98f), // default size
-                               largeText2.length + 1, // +1 to account for the newline character
-                               smallText2.length,
-                               Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
-                           )
-                           tv_content_knowledge.text = spannableString2
-*/
+                           //tv_content_knowledge.setText(courseList.size.toString()+" Topics"/*+"\nContents"*/)
+                           tv_content_knowledge.setText(courseList.size.toString()/*+"\nContents"*/)
                         }else{
                             (mContext as DashboardActivity).showSnackMessage(getString(R.string.no_data_found))
                         }
@@ -487,42 +505,35 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
             (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
         }
     }
-    /*companion object {
-        fun getInstance(objects: Any): MyLearningFragment {
-            val fragment = MyLearningFragment()
-            return fragment
-        }
-    }*/
+
     override fun onClick(v: View?) {
         when(v?.id){
-            ll_knowledgeHub.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.SearchLmsKnowledgeFrag, true, "")
-            }
 
-            ll_myLearning.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyLearningTopicList, true, "")
-            }
-
+            //Leaderboard for LMS page redirection mantis - 0027571
             cv_lms_leaderboard.id -> {
+                setHomeClickFalse()
                 (mContext as DashboardActivity).loadFragment(FragType.LeaderboardLmsFrag, true, "")
             }
-
+            //My assigned topics page redirection -> Assigned to user mantis - 0027573
             ll_lms_mylearning.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyLearningTopicList, true, "")
+                setHomeClickFalse()
+                (mContext as DashboardActivity).loadFragment(FragType.SearchLmsFrag, true, "")
             }
 
-            ll_lms_leaderboard.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyLearningFragment, true, "")
-            }
-
-            ll_lms_knowledgehub.id -> {
+            //All topics page redirection  mantis - 0027570
+            ll_knowledgeHub.id -> {
+                setHomeClickFalse()
                 (mContext as DashboardActivity).loadFragment(FragType.SearchLmsKnowledgeFrag, true, "")
             }
+            //Performance Insight page redirection
             ll_lms_performance.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyPerformanceFrag, true, "")
+                setHomeClickFalse()
+                (mContext as DashboardActivity).loadFragment(FragType.PerformanceInsightPage, true, "")
 
             }
+            //My Performance  page redirection mantis - 0027576
             cv_frag_search_mylearning_root.id -> {
+                setHomeClickFalse()
                 (mContext as DashboardActivity).loadFragment(FragType.MyPerformanceFrag, true, "")
             }
         }
@@ -545,13 +556,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                                 try {
                                     var filterL =response.topic_list.filter { it.topic_parcentage != 100 }
                                     getVideoTopicWise(filterL.get(0))
-                                    /*var firstObj = response.topic_list.get(0)
-                                    VideoPlayLMS.previousFrag = FragType.SearchLmsFrag.toString()
-                                    VideoPlayLMS.loadedFrom = "LMSDASHBOARD"
-                                    Pref.videoCompleteCount = "0"
-                                    Handler().postDelayed(Runnable {
-                                        (mContext as DashboardActivity).loadFragment(FragType.VideoPlayLMS, true, firstObj.topic_id.toString()+"~"+firstObj.topic_name)
-                                    }, 500)*/
+
                                 }catch (e:Exception){
                                     e.printStackTrace()
                                 }
@@ -596,6 +601,7 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
                                     VideoPlayLMS.loadedFrom = "LMSDASHBOARD"
                                     Pref.videoCompleteCount = "0"
                                     Handler().postDelayed(Runnable {
+                                        setHomeClickFalse()
                                         (mContext as DashboardActivity).loadFragment(FragType.VideoPlayLMS, true, topicList.topic_id.toString()+"~"+topicList.topic_name)
                                     }, 500)
                                 } else {
@@ -622,6 +628,9 @@ class MyLearningFragment : BaseFragment(),OnClickListener {
         }
     }
 
+    fun setHomeClickFalse(){
+        CustomStatic.IsHomeClick = false
+    }
 
 
 }

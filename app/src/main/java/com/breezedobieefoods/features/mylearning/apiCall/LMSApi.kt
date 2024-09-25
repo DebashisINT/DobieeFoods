@@ -7,6 +7,8 @@ import com.breezedobieefoods.features.leaderboard.api.LeaderboardOverAllData
 import com.breezedobieefoods.features.leaderboard.api.LeaderboardOwnData
 import com.breezedobieefoods.features.login.api.opportunity.OpportunityListApi
 import com.breezedobieefoods.features.login.model.opportunitymodel.OpportunityStatusListResponseModel
+import com.breezedobieefoods.features.mylearning.BookmarkFetchResponse
+import com.breezedobieefoods.features.mylearning.BookmarkResponse
 import com.breezedobieefoods.features.mylearning.CONTENT_WISE_QA_SAVE
 import com.breezedobieefoods.features.mylearning.ContentCountSave_Data
 import com.breezedobieefoods.features.mylearning.LMSLeaderboardOverAllData
@@ -14,6 +16,7 @@ import com.breezedobieefoods.features.mylearning.LMSLeaderboardOwnData
 import com.breezedobieefoods.features.mylearning.LMS_CONTENT_INFO
 import com.breezedobieefoods.features.mylearning.MyCommentListResponse
 import com.breezedobieefoods.features.mylearning.MyLarningListResponse
+import com.breezedobieefoods.features.mylearning.SectionsPointsList
 import com.breezedobieefoods.features.mylearning.TopicListResponse
 import com.breezedobieefoods.features.mylearning.VideoTopicWiseResponse
 import io.reactivex.Observable
@@ -60,6 +63,16 @@ interface LMSApi {
     @POST("LMSInfoDetails/LMSLeaderboardOverallList")
     fun overAllDatalist(@Field("user_id") user_id: String,@Field("branchwise") branchwise: String,@Field("flag") flag: String): Observable<LMSLeaderboardOverAllData>
 
+    @FormUrlEncoded
+    @POST("LMSInfoDetails/LMSSectionsPointsList")
+    fun overAllDatalist(@Field("session_token") session_token: String): Observable<SectionsPointsList>
+
+    @POST("LMSInfoDetails/LMSSaveBookMark")
+    fun bookmarkApiCallApi(@Body obj: BookmarkResponse): Observable<BaseResponse>
+
+    @FormUrlEncoded
+    @POST("LMSInfoDetails/LMSFetchBookMark")
+    fun getBookmarkedApiCallApi(@Field("user_id") user_id: String): Observable<BookmarkFetchResponse>
 
     companion object Factory {
         fun create(): LMSApi {

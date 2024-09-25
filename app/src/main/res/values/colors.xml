@@ -81,7 +81,12 @@
 
     <color name="yellow">#fdb75b</color>
     <color name="red">#fd5c63</color>
+<!--
     <color name="toolbar_lms">#0D308A</color>
+-->
+    <color name="toolbar_lms">#E11F5C</color>
+    <color name="toolbar_FSM">#E11F5C</color>
+    <color name="toolbartransparent_lms">#00E11F5C</color>
 
     <color name="violet">#818aff</color>
     <color name="green">#98c141</color>
@@ -176,6 +181,9 @@
     <color name="dividerColor">#023f89</color>
 
     <color name="menu_back_color">#268EA7</color>
+<!--
+    <color name="menu_back_color">#ffd8cc</color>
+-->
     <color name="color_option">#DCF4EC</color>
 
 </resources>

@@ -5576,11 +5576,16 @@ class DashboardFragment : BaseFragment(), View.OnClickListener/*, HBRecorderList
                                     Pref.firebase_k = "key="+configResponse.firebase_k!!
                                 //end mantis id 0027432 firebase_k functionality Puja 08-05-2024  v4.2.7
 
-                                //begin mantis id 0027663 Question_After_No_Of_Content functionality Puja 10-08-2024 v4.2.9
-                                if (configResponse.Question_After_No_Of_Content != null)
-                                    Pref.Question_After_No_Of_Content = configResponse.Question_After_No_Of_Content!!
-                                //end mantis id 0027663 Question_After_No_Of_Content functionality Puja 10-08-2024  v4.2.9
+                                //begin mantis id 0027683 QuestionAfterNoOfContentForLMS functionality Puja 05-08-2024  v4.2.9
+                                // if (configResponse.QuestionAfterNoOfContentForLMS != null)
+                                    Pref.QuestionAfterNoOfContentForLMS = configResponse.QuestionAfterNoOfContentForLMS!!
+                                //end mantis id 0027683 QuestionAfterNoOfContentForLMS functionality Puja 05-08-2024  v4.2.9
 
+                                if (configResponse.IsAllowGPSTrackingInBackgroundForLMS != null)
+                                    Pref.IsAllowGPSTrackingInBackgroundForLMS = configResponse.IsAllowGPSTrackingInBackgroundForLMS!!
+                                //Suman 18-09-2024 mantis 27700
+                                if (configResponse.IsRetailOrderStatusRequired != null)
+                                    Pref.IsRetailOrderStatusRequired = configResponse.IsRetailOrderStatusRequired!!
                             }
                             BaseActivity.isApiInitiated = false
                             /*API_Optimization 02-03-2022*/

@@ -57,6 +57,9 @@ class LmsSearchAdapter(
             tv_Search_item.text = "${item.courseName} (${item.video_count})"
 
             itemView.learning_progress_status_topic.progress = item.topic_parcentage
+            if (item.topic_parcentage > 100){
+                item.topic_parcentage = 100
+            }
             itemView.tv_parcentage.text = "${item.topic_parcentage}%"
             itemView.tv_parcentage.text = item.topic_parcentage.toString()+"%"
 

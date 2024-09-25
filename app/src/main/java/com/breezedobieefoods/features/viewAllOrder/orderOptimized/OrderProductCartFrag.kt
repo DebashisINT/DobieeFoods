@@ -377,6 +377,11 @@ class OrderProductCartFrag : BaseFragment(), View.OnClickListener{
                 orderListDetails.order_lat = Pref.current_latitude
                 orderListDetails.order_long = Pref.current_longitude
                 orderListDetails.isUploaded = false
+                if(Pref.IsRetailOrderStatusRequired){
+                    orderListDetails.orderStatus = "Ordered"
+                }else{
+                    orderListDetails.orderStatus = ""
+                }
 
                 AppDatabase.getDBInstance()!!.orderDetailsListDao().insert(orderListDetails)
 
@@ -623,6 +628,8 @@ class OrderProductCartFrag : BaseFragment(), View.OnClickListener{
         addOrderApiObj.scheme_amount = "0"
         addOrderApiObj.Hospital = ""
         addOrderApiObj.Email_Address = ""
+        addOrderApiObj.orderStatus = orderObj.orderStatus
+
         for(i in 0..orderProductList.size-1){
             var productObj = AddOrderInputProductList()
             productObj.apply {

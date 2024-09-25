@@ -1,6 +1,8 @@
 package com.breezedobieefoods.features.mylearning
 
+import android.app.Activity
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -21,10 +23,13 @@ import com.breezedobieefoods.R
 import com.breezedobieefoods.base.presentation.BaseFragment
 import com.breezedobieefoods.features.dashboard.presentation.DashboardActivity
 import android.os.Handler
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import com.breezedobieefoods.CustomStatic
 import com.breezedobieefoods.app.NetworkConstant
 import com.breezedobieefoods.app.Pref
 import com.breezedobieefoods.app.types.FragType
@@ -111,6 +116,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater!!.inflate(R.layout.fragment_lms_question_answer_set, container, false)
+        (mContext as Activity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
         initView(view)
         return view
     }
@@ -374,6 +380,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
                         try {
                             if (response.status == NetworkConstant.SUCCESS) {
                                 //Toast.makeText(mContext, ""+response.message, Toast.LENGTH_SHORT).show()
+                                excute()
                             }else{
 
                             }
@@ -387,6 +394,52 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         } catch (ex: Exception) {
             ex.printStackTrace()
             (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
+        }
+    }
+
+    fun excute(){
+        try {
+            val repository = LMSRepoProvider.getTopicList()
+            BaseActivity.compositeDisposable.add(
+                repository.getTopicsWiseVideo(Pref.user_id!!, VideoPlayLMS.topic_id)
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe({ result ->
+                        var response = result as VideoTopicWiseResponse
+                        if (response.status == NetworkConstant.SUCCESS) {
+                            try {
+                                if (response.content_list != null && response.content_list.size > 0) {
+                                    var temp  = response.content_list.distinctBy { it.content_play_sequence.toString() }
+                                    var contentL = temp as ArrayList<ContentL>
+                                    val sortedList = contentL.sortedBy { it.content_play_sequence.toInt() }.toCollection(ArrayList())
+                                    VideoPlayLMS.sequenceQuestionL = ArrayList()
+                                    try {
+                                        for (i in 0.. sortedList.size-1){
+                                            var rootObj : SequenceQuestion = SequenceQuestion()
+                                            rootObj.index = i+1
+                                            rootObj.completionStatus = sortedList.get(i).CompletionStatus
+                                            rootObj.question_list = sortedList.get(i).question_list
+                                            VideoPlayLMS.sequenceQuestionL.add(rootObj)
+                                        }
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        VideoPlayLMS.sequenceQuestionL = ArrayList()
+                                    }
+                                } else {
+
+                                }
+                            } catch (ex: Exception) {
+                                ex.printStackTrace()
+                            }
+                        } else {
+                        }
+                    }, { error ->
+                        error.printStackTrace()
+                    })
+            )
+        }
+        catch (ex: Exception) {
+            ex.printStackTrace()
         }
     }
 
@@ -512,11 +565,12 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         val popup_title: TextView = popupView.findViewById(R.id.popup_title)
         val popup_message: TextView = popupView.findViewById(R.id.popup_message)
         val popup_message_ans: TextView = popupView.findViewById(R.id.popup_message_ans)
-        popup_title.setText("Oops!")
+        //popup_title.setText("Oops!")
         var typeFace: Typeface? = ResourcesCompat.getFont(requireContext(), R.font.remachinescript_personal_use)
         popup_title.setTypeface(typeFace)
-        popup_message.setText("You get $pointsListval points. Correct answer is : ")
-        popup_message_ans.text = correctAns
+        //popup_message.setText("You get $pointsListval points.")
+        //popup_message.setText("Wrong Answer")
+        popup_message_ans.text = "Correct answer is : "+correctAns
         close_button.setOnClickListener {
             processloadQuestionAns()
             progress_wheel.spin()
@@ -534,7 +588,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
 
     private fun showPopup( pointsListval: Int) {
         val inflater: LayoutInflater = mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val popupView: View = inflater.inflate(R.layout.popup_layout_congratulation, null)
+        val popupView: View = inflater.inflate(R.layout.popup_layout_correct_ans, null)
         popupWindow = PopupWindow(
             popupView,
             LinearLayout.LayoutParams.MATCH_PARENT,
@@ -549,6 +603,16 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         var typeFace: Typeface? = ResourcesCompat.getFont(requireContext(), R.font.remachinescript_personal_use)
         popup_title.setTypeface(typeFace)
         popup_message.setText("You get $pointsListval points")
+
+        popup_title.visibility = View.GONE
+        popup_message.setText("+$pointsListval")
+
+        println("tag_animate anim")
+        val a: Animation = AnimationUtils.loadAnimation(mContext, com.breezedobieefoods.R.anim.scale)
+        a.reset()
+        popup_message.clearAnimation()
+        popup_message.startAnimation(a)
+
         close_button.setOnClickListener {
 
             processloadQuestionAns()
@@ -601,7 +665,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         popupWindowSummary.setOnDismissListener {
             try {
                 //Pref.videoCompleteCount = "0"
-                /*for(i in 0..Pref.Question_After_No_Of_Content.toInt()-1){
+                /*for(i in 0..Pref.QuestionAfterNoOfContentForLMS.toInt()-1){
                     VideoPlayLMS.sequenceQuestionL.removeAt(0)
                 }*/
             } catch (e: Exception) {
@@ -610,6 +674,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
             if (lastvideo==true){
                 //(mContext as DashboardActivity).onBackPressed()
                 //(mContext as DashboardActivity).onBackPressed()
+                CustomStatic.IsHomeClick = true
                 (mContext as DashboardActivity).loadFragment(FragType.SearchLmsFrag, false, "")
             }else {
                 (mContext as DashboardActivity).onBackPressed()
@@ -622,6 +687,7 @@ class LmsQuestionAnswerSet : BaseFragment() , View.OnClickListener {
         popupWindowSummary.showAtLocation(ll_parent_question_answer, Gravity.CENTER, 0, 0)
 
     }
+
     override fun onClick(p0: View?) {
         when (p0?.id) {
             tv_op1.id ->{

@@ -22,5 +22,6 @@ class AddOrderInputParamsModel {
     var scheme_amount: String? = null
     var Hospital: String? = null
     var Email_Address: String? = null
+    var orderStatus: String? = null
     var product_list: ArrayList<AddOrderInputProductList>? = null
 }

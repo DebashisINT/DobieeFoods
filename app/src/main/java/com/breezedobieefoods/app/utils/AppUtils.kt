@@ -2923,10 +2923,19 @@ class AppUtils {
 
         fun hiFirstNameText() : String {
             try{
-                val firstName = Pref.user_name?.substring(0, Pref.user_name?.indexOf(" ")!!)
-                return "Hi $firstName"
+                if (!Pref.user_name.isNullOrEmpty()){
+                    val firstName = Pref.user_name?.substring(0, Pref.user_name?.indexOf(" ")!!)
+                    return "Hi $firstName"
+                }else {
+                    //val firstName = Pref.user_name?.substring(0, Pref.user_name?.indexOf(" ")!!)
+                    return "Hi"
+                }
             }catch (ex:Exception){
-                return "Hi ${Pref.user_name}"
+                if (!Pref.user_name.isNullOrEmpty()){
+                    return "Hi"
+                }else {
+                    return "Hi ${Pref.user_name}"
+                }
             }
 
         }

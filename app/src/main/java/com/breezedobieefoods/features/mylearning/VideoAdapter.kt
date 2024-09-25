@@ -2,7 +2,10 @@ package com.breezedobieefoods.features.mylearning
 
 import android.animation.Animator
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
@@ -14,18 +17,25 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.view.animation.Animation
+import android.view.animation.AnimationUtils
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.airbnb.lottie.LottieAnimationView
+import com.breezedobieefoods.CustomStatic
 import com.breezedobieefoods.R
 import com.breezedobieefoods.app.Pref
 import com.breezedobieefoods.app.utils.AppUtils
+import com.breezedobieefoods.app.utils.Toaster
+import com.breezedobieefoods.features.dashboard.presentation.DashboardActivity
 import com.breezedobieefoods.features.location.LocationWizard
 import com.google.android.exoplayer2.DefaultRenderersFactory
 import com.google.android.exoplayer2.ExoPlayer
@@ -34,7 +44,9 @@ import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.ProgressiveMediaSource
+import com.google.android.exoplayer2.trackselection.DefaultTrackSelector
 import com.google.android.exoplayer2.upstream.DefaultDataSource
+import com.google.android.exoplayer2.video.VideoSize
 import kotlinx.android.synthetic.main.list_video.view.iv_list_video
 import kotlinx.android.synthetic.main.list_video.view.progress_wheel
 import kotlinx.android.synthetic.main.list_video.view.stylplayerView
@@ -49,6 +61,7 @@ import java.util.Locale
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
+
 class VideoAdapter(var viewPager2: ViewPager2,
                    var context: Context,
                    var videos: ArrayList<ContentL>,
@@ -60,12 +73,15 @@ class VideoAdapter(var viewPager2: ViewPager2,
                    var ll_vdo_ply_share: LinearLayout,
                    var iv_vdo_ply_like: ImageView,
                    var iv_vdo_ply_bookmark: ImageView,
+                   var exo_fullscreen: ImageView,
+                   /*var like_flag: Boolean,*/
                    var videoPreparedListener: VideoAdapter.OnVideoPreparedListener,
-                   var lastVideoCompleteListener: OnLastVideoCompleteListener) :
-    RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
+                   var lastVideoCompleteListener: OnLastVideoCompleteListener,
+                   var content_watch_point: Int) : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>()
+{
 
     companion object {
-
+        private var is_portraitTouched: Boolean = false
     }
 
 
@@ -102,7 +118,6 @@ class VideoAdapter(var viewPager2: ViewPager2,
 
     private var onVideoPlaybackStateChangedListener: OnVideoPlaybackStateChangedListener? = null
 
-
     inner class VideoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
 
         lateinit var exoPlayer: ExoPlayer
@@ -112,15 +127,19 @@ class VideoAdapter(var viewPager2: ViewPager2,
         var seek_dragging = false
         private val savedContentIds = mutableSetOf<Int>()
 
-        fun bindItems(
-            holder: VideoViewHolder,
-            context: Context,
-            videos_: ArrayList<ContentL>,
-            listner: OnVideoPreparedListener
-        ){
+        fun bindItems(holder: VideoViewHolder, context: Context, videos_: ArrayList<ContentL>, listner: OnVideoPreparedListener) {
 
-            if (videos_.get(absoluteAdapterPosition).content_url.contains(".mp4", ignoreCase = true)) {
-                setVideoPath(holder,videos_.get(absoluteAdapterPosition).content_url, absoluteAdapterPosition ,listner)
+            if (videos_.get(absoluteAdapterPosition).content_url.contains(
+                    ".mp4",
+                    ignoreCase = true
+                )
+            ) {
+                setVideoPath(
+                    holder,
+                    videos_.get(absoluteAdapterPosition).content_url,
+                    absoluteAdapterPosition,
+                    listner
+                )
                 if (videos_.get(absoluteAdapterPosition).content_url.contains("http")) {
                     setVideoPath(
                         holder,
@@ -144,17 +163,17 @@ class VideoAdapter(var viewPager2: ViewPager2,
             itemView.tvTitle.text = model.content_title
             itemView.tvDescrip.text = model.content_description
 
-            println("video_adapter like_flag"+videos.get(position).like_flag)
-            println("video_adapter isLiked"+videos.get(position).isLiked)
+            println("video_adapter like_flag" + videos.get(position).like_flag)
+            println("video_adapter isLiked" + videos.get(position).isLiked)
 
-            if (model.content_watch_length!="" && model.content_watch_completed==false) {
+            if (model.content_watch_length != "" && model.content_watch_completed == false) {
 
                 val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
                 val time = LocalTime.parse(model.content_watch_length, formatter)
                 val milliseconds = time.toSecondOfDay() * 1000L
                 println("Milliseconds: $milliseconds")
                 exoPlayer.seekTo(milliseconds)
-            }else{
+            } else {
                 exoPlayer.seekTo(0)
 
             }
@@ -186,10 +205,44 @@ class VideoAdapter(var viewPager2: ViewPager2,
             iv_vdo_ply_bookmark.setOnClickListener {
                 videoPreparedListener.onBookmarkClick()
             }
-            /*//suman 17-07-2024
+
+            /*itemView.stylplayerView.setOnClickListener {
+                if (is_portraitTouched == true) {
+                    (context as DashboardActivity).toggleToolbar()
+                }
+            }*/
+
+            exo_fullscreen.setOnClickListener {
+                try {
+                    if (is_portraitTouched == false) {
+                        is_portraitTouched = true
+                        exo_fullscreen.setBackgroundResource(R.drawable.full_screenfff);
+                        (context as Activity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                        //ContextThemeWrapper(context, R.style.AppTheme_NoStatusBar)
+                        (context as DashboardActivity).hideToolbar()
+                        //(context as DashboardActivity).statusColorLandScape()
+                        // hide status bar
+                        context.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+                    } else {
+                        exo_fullscreen.setBackgroundResource(R.drawable.switch_to_full_screen_button);
+                        (context as Activity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                        is_portraitTouched = false
+                        //(context as DashboardActivity).showToolbar()
+                        (context as DashboardActivity).showToolbar()
+
+                        // Show status bar
+                        context.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+                        (context as DashboardActivity).statusColorPortrait()
+
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                /*//suman 17-07-2024
             ll_vdo_ply_cmmnt.setOnClickListener {
                 listner.onCommentCLick(videos[absoluteAdapterPosition])
             }*/
+            }
         }
 
         fun setGIF() {
@@ -220,7 +273,9 @@ class VideoAdapter(var viewPager2: ViewPager2,
 
             itemView.progress_wheel.stopSpinning()
             println("tag_vodeo_position_state pos : $adapterPosition")
-            exoPlayer = ExoPlayer.Builder(context)
+            // Initialize ExoPlayer with a track selector
+            val trackSelector = DefaultTrackSelector(context)
+            exoPlayer = ExoPlayer.Builder(context).setTrackSelector(trackSelector)
                 .setRenderersFactory(
                     DefaultRenderersFactory(context).setEnableDecoderFallback(
                         true
@@ -228,7 +283,33 @@ class VideoAdapter(var viewPager2: ViewPager2,
                 ).setSeekForwardIncrementMs(10000L)
                 .setSeekBackIncrementMs(10000L).build()
 
+            // Set parameters for the track selector
+            val parametersBuilder = trackSelector.parameters.buildUpon()
+
+            // For example, set the maximum video bitrate to 500000 (500 kbps)
+            parametersBuilder.setMaxVideoBitrate(500_000)
+
+            // Apply the parameters to the track selector
+            trackSelector.setParameters(parametersBuilder)
+
+
             exoPlayer.addListener(object : Player.Listener {
+
+                /*override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    super.onVideoSizeChanged(videoSize)
+
+                    // Check if the video is in portrait or landscape mode
+                    val videoWidth = videoSize.width
+                    val videoHeight = videoSize.height
+                    if (videoHeight >= videoWidth) {
+                        // If height is greater than width, it’s portrait
+                        (context as Activity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+                    } else {
+                        // If width is greater, it's landscape
+                        (context as Activity).setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)
+                    }
+                }*/
+
                 override fun onPlayerError(error: PlaybackException) {
                     super.onPlayerError(error)
                     Toast.makeText(context, "Can't play this video", Toast.LENGTH_SHORT).show()
@@ -236,7 +317,6 @@ class VideoAdapter(var viewPager2: ViewPager2,
 
                 @SuppressLint("SuspiciousIndentation")
                 override fun onPlayerStateChanged(playWhenReady: Boolean, playbackState: Int) {
-
 
                     /*if (playbackState == PlaybackStateCompat.STATE_FAST_FORWARDING) {
                         seek_dragging = true
@@ -258,6 +338,11 @@ class VideoAdapter(var viewPager2: ViewPager2,
                     } else {
                         video_watch_completed = false
                     }
+
+                    if (percentageWatched.toInt() > 100){
+                        percentageWatched =100
+                    }
+
                     println("tag_percentageWatched_after  $video_watch_completed")
 
                     if (playWhenReady && playbackState == Player.STATE_READY) {
@@ -277,7 +362,7 @@ class VideoAdapter(var viewPager2: ViewPager2,
                         )
                     }
 
-                    if (duration >0 && position_ >0 && playbackState!=Player.STATE_BUFFERING){
+                    if (duration >=0 && position_ >=0 /*&& playbackState!=Player.STATE_BUFFERING*/){
 
 
                         println("currentDateandTime"+AppUtils.getCurrentDateyymmdd())
@@ -289,13 +374,13 @@ class VideoAdapter(var viewPager2: ViewPager2,
                             topic_id.toInt(),
                             topic_name,
                             videos.get(position).content_id.toInt(),
-                            videos.get(position).like_flag,
+                            /*videos.get(position).like_flag*/like_flag,
                             0,
                             0,
                             DurationFormatUtils.formatDuration(duration, "HH:mm:ss"),
                             DurationFormatUtils.formatDuration(position_, "HH:mm:ss"),
-                            "",
-                            "",
+                            AppUtils.getCurrentDateTimeNew(),
+                            AppUtils.getCurrentDateTimeNew(),
                             video_watch_completed,
                             AppUtils.getCurrentDateTimeNew(),
                             convertTo24HourFormat(convertDate(starttime.toString(), "hh:mm:ss a")),
@@ -320,6 +405,10 @@ class VideoAdapter(var viewPager2: ViewPager2,
                     when (playbackState) {
 
                         Player.STATE_ENDED -> {
+
+                            Pref.content_watch_count = Pref.content_watch_count+1
+
+                            listner.onEndofVidForCountUpdate()
                             println("tag_video_position_state  state ended ")
 
                             endTime = System.currentTimeMillis()
@@ -338,8 +427,8 @@ class VideoAdapter(var viewPager2: ViewPager2,
                                 0,
                                 DurationFormatUtils.formatDuration(duration, "HH:mm:ss"),
                                 DurationFormatUtils.formatDuration(position_, "HH:mm:ss"),
-                                "",
-                                "",
+                                AppUtils.getCurrentDateTimeNew(),
+                                AppUtils.getCurrentDateTimeNew(),
                                 video_watch_completed,
                                 AppUtils.getCurrentDateTimeNew(),
                                 convertTo24HourFormat(convertDate(starttime.toString(), "hh:mm:ss a")),
@@ -387,9 +476,18 @@ class VideoAdapter(var viewPager2: ViewPager2,
                     }
                     else if (/*playbackState != Player.STATE_BUFFERING &&*/ playbackState == Player.STATE_ENDED /*&& position != videos.size - 1*/) {
 
-                        showWatchPointPopup(absoluteAdapterPosition)
+                        // getPointsAPICalling(absoluteAdapterPosition)
+                        if(CustomStatic.IsHomeClick == true){
+                            CustomStatic.IsHomeClick = false
+                        }else{
+                            showWatchPointPopup(absoluteAdapterPosition , content_watch_point)
+                        }
 
-                        Pref.content_watch_count = Pref.content_watch_count+1
+
+                        //Pref.content_watch_count = Pref.content_watch_count+1
+
+                        //listner.onEndofVidForCountUpdate()
+
                         // viewPager2.setUserInputEnabled(true);
 
                         //viewPager2.setCurrentItem(viewPager2.currentItem + 1, true)
@@ -403,17 +501,6 @@ class VideoAdapter(var viewPager2: ViewPager2,
                             println("question_submit"+LmsQuestionAnswerSet.question_submit)
                             println("question_submit savedContentIds_content_id"+savedContentIds.content_id)
 
-                            /*   var qList: ArrayList<QuestionL> = ArrayList()
-                               try {
-                                   if(videos.get(position).question_list!=null){
-                                       if(videos.get(position).question_list.size>0){
-                                           qList = videos.get(position).question_list
-                                       }
-                                   }
-                               } catch (e: Exception) {
-                                   qList = ArrayList()
-                               }*/
-
                             // if (qList.size>0 ) {
                             println("seek_dragging >>>  "+seek_dragging)
                             if (exoPlayer.playbackParameters.speed != 2.0.toFloat() && !seek_dragging /*&& !LmsQuestionAnswerSet.question_submit*/ ) {
@@ -422,12 +509,20 @@ class VideoAdapter(var viewPager2: ViewPager2,
                                 println("question_submit_content_id"+LmsQuestionAnswerSet.question_submit_content_id)
                                 println("zzzzzzz"+videos.get(absoluteAdapterPosition).content_id)
                                 // if (!savedContentIds.content_id.contains(videos.get(absoluteAdapterPosition).content_id.toInt()) ) {
-                                Pref.videoCompleteCount = (Pref.videoCompleteCount.toString().toInt() + 1).toString()
-                                if (videos.get(position).CompletionStatus==false) {
+                                //Pref.videoCompleteCount = (Pref.videoCompleteCount.toString().toInt() + 1).toString()
+                                if (videos.get(position).question_list!=null && videos.get(position).CompletionStatus==false) {
                                     //if (true) {// test code
+                                    popupWindow.setOnDismissListener {
 
-                                    listner.onQuestionAnswerSetPageLoad(videos.get(position).question_list.clone() as ArrayList<QuestionL>,absoluteAdapterPosition)
+                                        //if (videos.get(position).question_list!=null && videos.get(position).question_list.size!=0) {
+                                        try {
+                                            listner.onQuestionAnswerSetPageLoad(videos.get(position).question_list.clone() as ArrayList<QuestionL>, absoluteAdapterPosition)
+                                        } catch (e: Exception) {
+                                            e.printStackTrace()
+                                        }
 
+                                        //}
+                                    }
                                 }
                                 /* else{
 
@@ -435,8 +530,8 @@ class VideoAdapter(var viewPager2: ViewPager2,
                             }
                             // }
                             // else{
-                            if (position == videos.size - 1)
-                                lastVideoCompleteListener.onLastVideoComplete()
+                            /*if (position == videos.size - 1)
+                                lastVideoCompleteListener.onLastVideoComplete()*/
                             //  }
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -508,6 +603,12 @@ class VideoAdapter(var viewPager2: ViewPager2,
         }
 
         fun openShareIntents(contentL: ContentL) {
+            println("tag_share from openShareIntents adapter")
+
+            val intent = Intent(Intent.ACTION_SEND)
+            intent.putExtra(Intent.EXTRA_TEXT, contentL.content_url)
+            intent.type = "text/plain"
+            context.startActivity(Intent.createChooser(intent, "Share Via"))
             /*try {
                 videoPreparedListener.onShareClick(contentL)
                 return
@@ -577,7 +678,9 @@ class VideoAdapter(var viewPager2: ViewPager2,
         }
     }
 
-    private fun showWatchPointPopup(absoluteAdapterPosition: Int) {
+
+
+    private fun showWatchPointPopup(absoluteAdapterPosition: Int, content_watch_point: Int) {
 
         val inflater: LayoutInflater = context.getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
         val popupView: View = inflater.inflate(R.layout.popup_layout_congratulation_, null)
@@ -587,24 +690,25 @@ class VideoAdapter(var viewPager2: ViewPager2,
             LinearLayout.LayoutParams.MATCH_PARENT,
             true
         )
-        val close_button: TextView = popupView.findViewById(R.id.close_button)
+        // val close_button: TextView = popupView.findViewById(R.id.close_button)
         val popup_image: LottieAnimationView = popupView.findViewById(R.id.popup_image)
-        val popup_title: TextView = popupView.findViewById(R.id.popup_title)
+        // val popup_title: TextView = popupView.findViewById(R.id.popup_title)
         val popup_message: TextView = popupView.findViewById(R.id.popup_message)
-        popup_title.setText("Congratulation"/*+Pref.user_name*/)
+        // popup_title.setText("Congratulation"/*+Pref.user_name*/)
         var typeFace: Typeface? = ResourcesCompat.getFont(context, R.font.remachinescript_personal_use)
-        popup_title.setTypeface(typeFace)
-        popup_message.visibility = View.GONE
-        popup_message.setText("You got 5 points")
+        // popup_title.setTypeface(typeFace)
+        popup_message.setText("+$content_watch_point")
 
-        close_button.setOnClickListener {
-            if (absoluteAdapterPosition == videos.size - 1) {
-                lastVideoCompleteListener.onLastVideoComplete()
-                popupWindow.dismiss()
-            }else{
-                popupWindow.dismiss()
-            }
-        }
+        // close_button.setOnClickListener {
+
+        //  }
+
+        println("tag_animate anim")
+        val a: Animation = AnimationUtils.loadAnimation(context, com.breezedobieefoods.R.anim.scale)
+        a.reset()
+        popup_message.clearAnimation()
+        popup_message.startAnimation(a)
+
         popup_image.visibility =View.VISIBLE
         popupWindow.setBackgroundDrawable(ColorDrawable())
         popupWindow.isOutsideTouchable = false
@@ -615,28 +719,30 @@ class VideoAdapter(var viewPager2: ViewPager2,
         popup_image.addAnimatorListener(object : Animator.AnimatorListener {
 
             override fun onAnimationStart(animation: Animator) {
-                Log.e("Animation:","start");
-                popup_message.visibility = View.GONE
+                Log.e("AnimationVideo:","start");
+                //  popup_message.visibility = View.GONE
 
             }
 
             override fun onAnimationEnd(animation: Animator) {
 
                 Handler().postDelayed(Runnable {
+
+                    popup_image.visibility = View.GONE
                     popup_message.visibility = View.VISIBLE
                     popupWindow.dismiss()
                     viewPager2.setCurrentItem(viewPager2.currentItem + 1, true)
-                }, 1500)
+                }, 1)
 
 
             }
 
             override fun onAnimationCancel(animation: Animator) {
-                Log.e("Animation:","cancel");
+                Log.e("AnimationVideo:","cancel");
             }
 
             override fun onAnimationRepeat(animation: Animator) {
-                Log.e("Animation:","cancel");
+                Log.e("AnimationVideo:","Repeat");
             }
         })
 
@@ -666,6 +772,7 @@ class VideoAdapter(var viewPager2: ViewPager2,
         fun onQuestionAnswerSetPageLoad(obj: ArrayList<QuestionL>,position:Int)
         fun onLikeClick(isLike:Boolean)
         fun onBookmarkClick()
+        fun onEndofVidForCountUpdate()
     }
     interface OnLastVideoCompleteListener {
         fun onLastVideoComplete()

@@ -5,6 +5,8 @@ import com.breezedobieefoods.features.leaderboard.api.LeaderboardOverAllData
 import com.breezedobieefoods.features.leaderboard.api.LeaderboardOwnData
 import com.breezedobieefoods.features.login.api.opportunity.OpportunityListApi
 import com.breezedobieefoods.features.login.model.opportunitymodel.OpportunityStatusListResponseModel
+import com.breezedobieefoods.features.mylearning.BookmarkFetchResponse
+import com.breezedobieefoods.features.mylearning.BookmarkResponse
 import com.breezedobieefoods.features.mylearning.CONTENT_WISE_QA_SAVE
 import com.breezedobieefoods.features.mylearning.ContentCountSave_Data
 import com.breezedobieefoods.features.mylearning.LMSLeaderboardOverAllData
@@ -12,6 +14,7 @@ import com.breezedobieefoods.features.mylearning.LMSLeaderboardOwnData
 import com.breezedobieefoods.features.mylearning.LMS_CONTENT_INFO
 import com.breezedobieefoods.features.mylearning.MyCommentListResponse
 import com.breezedobieefoods.features.mylearning.MyLarningListResponse
+import com.breezedobieefoods.features.mylearning.SectionsPointsList
 import com.breezedobieefoods.features.mylearning.TopicListResponse
 import com.breezedobieefoods.features.mylearning.VideoPlayLMS
 import com.breezedobieefoods.features.mylearning.VideoTopicWiseResponse
@@ -53,5 +56,17 @@ class LMSRepo(val apiService: LMSApi) {
 
     fun overAllAPI(user_id: String,branchwise: String,flag: String): Observable<LMSLeaderboardOverAllData> {
         return apiService.overAllDatalist(user_id,branchwise,flag)
+    }
+
+    fun overAllDatalist(session_token: String): Observable<SectionsPointsList> {
+        return apiService.overAllDatalist(session_token)
+    }
+
+    fun bookmarkApiCall(obj:BookmarkResponse): Observable<BaseResponse> {
+        return apiService.bookmarkApiCallApi(obj)
+    }
+
+    fun getBookmarkedApiCall(user_id:String): Observable<BookmarkFetchResponse> {
+        return apiService.getBookmarkedApiCallApi(user_id)
     }
 }

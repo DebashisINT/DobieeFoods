@@ -1,6 +1,10 @@
 <resources>
     <!--<string name="app_name">Field Tracking System</string>-->
     <string name="app_name" translatable="false">Breeze-Dobiee Foods</string>
+<!--
+    <string name="app_name" translatable="false">MobiLearn-INT</string>
+-->
+    <!--<string name="app_name" translatable="false">Breeze-Demo</string>-->
     <string name="blank" translatable="false"></string>
     <string name="enter_a_title" translatable="false">Enter a title</string>
     <string name="entry_details_default_text" translatable="false">Entry Details!</string>
@@ -13,7 +17,7 @@
     <!--Map Key-->
     <!--<string name="MAP_ProjectAPIKey">AIzaSyBRrqsLZFqThqM8uxw_k94pZMbv3-3h0dM</string>-->
     <!--<string name="MAP_ProjectAPIKey" translatable="false">AIzaSyCbYMZjnt8T6yivYfIa4_R9oy-L3SIYyrQ</string>-->
-    <string name="MAP_ProjectAPIKey" translatable="false">AIzaSyDbsL6dMddy2DsjsVzhr_qJe-jWoBLcdLo</string>
+    <string name="MAP_ProjectAPIKey" translatable="false">AIzaSyCHG2G8eRC5IomPgrKYVv6s5OXRMAiNsCE</string>
     <string name="facebook_app_id" translatable="false">260734547001450</string>
     <string name="fb_login_protocol_scheme" translatable="false">fb260734547001450</string>
 

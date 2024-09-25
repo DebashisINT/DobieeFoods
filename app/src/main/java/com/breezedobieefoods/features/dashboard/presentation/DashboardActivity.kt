@@ -338,14 +338,21 @@ import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 import android.R.attr.name
 import android.content.Context.RECEIVER_EXPORTED
+import android.content.pm.ActivityInfo
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.Window
 import android.view.WindowManager
 import androidx.fragment.app.FragmentManager
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.breezedobieefoods.features.addshop.model.AudioFetchDataCLass
 import com.breezedobieefoods.features.login.api.opportunity.OpportunityRepoProvider
+import com.breezedobieefoods.features.login.model.NewSettingsResponseModel
+import com.breezedobieefoods.features.mylearning.AllTopicsWiseContents
+import com.breezedobieefoods.features.mylearning.BookmarkFetchResponse
 import com.breezedobieefoods.features.mylearning.BookmarkFrag
+import com.breezedobieefoods.features.mylearning.BookmarkPlayFrag
 import com.breezedobieefoods.features.mylearning.KnowledgeHubAllVideoList
 import com.breezedobieefoods.features.mylearning.LeaderboardLmsFrag
 import com.breezedobieefoods.features.mylearning.LmsQuestionAnswerSet
@@ -353,12 +360,35 @@ import com.breezedobieefoods.features.mylearning.MyLearningAllVideoList
 import com.breezedobieefoods.features.mylearning.MyLearningTopicList
 import com.breezedobieefoods.features.mylearning.MyLearningVideoPlay
 import com.breezedobieefoods.features.mylearning.MyPerformanceFrag
+import com.breezedobieefoods.features.mylearning.MyTopicsWiseContents
 import com.breezedobieefoods.features.mylearning.NotificationLMSFragment
 import com.breezedobieefoods.features.mylearning.SearchLmsFrag
 import com.breezedobieefoods.features.mylearning.SearchLmsKnowledgeFrag
 import com.breezedobieefoods.features.mylearning.SearchLmsLearningFrag
 import com.breezedobieefoods.features.mylearning.VideoPlayLMS
+import com.breezedobieefoods.features.mylearning.apiCall.LMSRepoProvider
+import com.google.android.gms.common.api.GoogleApiClient
 import com.google.android.gms.common.api.internal.LifecycleCallback.getFragment
+import com.google.android.gms.security.ProviderInstaller
+import com.google.auth.oauth2.GoogleCredentials
+import kotlinx.android.synthetic.main.activity_login_new.login_TV
+import kotlinx.android.synthetic.main.toolbar_layout.tv_saved_count
+import org.json.JSONException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.nio.charset.StandardCharsets
+import javax.activation.DataHandler
+import javax.activation.FileDataSource
+import javax.mail.Authenticator
+import javax.mail.Message
+import javax.mail.MessagingException
+import javax.mail.PasswordAuthentication
+import javax.mail.Session
+import javax.mail.Transport
+import javax.mail.internet.InternetAddress
+import javax.mail.internet.MimeBodyPart
+import javax.mail.internet.MimeMessage
+import javax.mail.internet.MimeMultipart
 
 
 /*
@@ -517,11 +547,15 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         //Pref.IsEditEnableforOpportunity = true
         //Pref.IsDeleteEnableforOpportunity = true
         Pref.IsUsbDebuggingRestricted = false
+        //getFCMtoken()
+        showToolbar()
+        println("load_frag " + mFragType.toString() + " " + Pref.user_id.toString() + " " + Pref.QuestionAfterNoOfContentForLMS)
 
-        println("load_frag " + mFragType.toString() + " " + Pref.user_id.toString() + " " + AppUtils.getCurrentMonthDayForShopActi())
+        //  val notification = NotificationUtils(getString(R.string.app_name), "", "", "")
 
+        //  notification.sendFCMNotificaitonTest(applicationContext,"Hii who are you?")
         //gallaboxApiTest()
-        trackLMSModuleLoad(mFragType)
+        // trackLMSModuleLoad(mFragType)
 
         batteryCheck(mFragType, addToStack, initializeObject)
 
@@ -533,6 +567,101 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
  mTransaction.replace(R.id.frame_layout_container, getFragInstance(mFragType, initializeObject, true)!!, mFragType.toString())
  mTransaction.commitAllowingStateLoss()
  }*/
+
+    }
+
+    fun getFCMtoken() {
+        try {
+            doAsync {
+                var firebaseUrl = "https://www.googleapis.com/auth/firebase.messaging"
+                var jsonString = "{\n" +
+                        "  \"type\": \"service_account\",\n" +
+                        "  \"project_id\": \"demofsm-fee63\",\n" +
+                        "  \"private_key_id\": \"fa4e0aa591d3ba0a173a6f3408401efdad118bdb\",\n" +
+                        "  \"private_key\": \"-----BEGIN PRIVATE KEY-----\\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCpS0IokL4jjiry\\ngB6fGcIvmZkZds8Rjs2tPrF353Wd4QyeyqycG+Jj7hU4Nd7lgH0GiiF+0QY+7nrv\\nSCQjdSHj+mJUhulL3vA81lypoSzTyvewTjXN5/yj6U3W0MsVlt1rHqckIRvKIdjH\\nfR50X3BB2m4200i3TAhSvSqWBAHp6ySVTRWfYxM70ugVDZdJsr+BW1cZnn5+z93z\\nWMa4RSqbj24ZQOUNEAtdxu8uJ5M1HnlCqa5WeKXpHuO1oUtwlB/EpELqBG6VWM8E\\nXityD+HTJF+Bch4wJhP18Kj40o1bZv4ZDoesXnpZ1NmamQprOv07QBM6U7Ni5XC1\\nVgjMuc9xAgMBAAECggEAHxYEpfI+F8VJOZIxDUHrmFX5+OUKDM1OExvJ9px3ym/C\\no33PyDKOlY7oMpQhw76eNo8yq1iybufXhwyWJjSh7nzRhXfoatgbAPDTvworcxB3\\n/tW9p3uLtoVml6VrRSGYsszEICw8MBea+LaO2wuTT2ROjJ6rYY0Ckj7ODRHbUBpi\\n16wHZzXk0xHvnU+WpiB8O2o0kyecHDASa2tlPDnBWZAjwvrd6YR2D9/3jq11qWK/\\nVlHliNi+O563ih9VueHHXKidlsJXfFl9lzgRKElqov6BX4fkmuGjYrea/LraQQAc\\nK3qGvdbfttuHUvJOIsZaAhu4VM+gnMB0R6yj+pwu6QKBgQDd0FE3ZktMZDCSf8vb\\nB9xn5vC5ga8X6Nu6/L1K5wENfid1ShQE3n4Ni3GXTlXalWvmLi0gpe9EZNUe7avr\\nF5kEXwNVc5Q4P438MfeAAmUU6kzR1T1Y76JX4xRi2idjoJqfm2SPRGNB6wtoS7Gu\\ngCJ3Urd9dH3/hL0D+e01+MHxywKBgQDDYsTVQxBJsZTq75lhmPKVzsgMDozAfXF2\\n6uk+eVg/QFjsyZagWsSLlACwRXuZwoi8f0spGEIX3Jf8f6dvYg3CIDyDc3Yp2rpm\\n6OpMosugWuJEaFFxlwFz6Gu+5q5rCoWh72reqHJm0FGWGbqevD39U1R/zsU0/LnT\\nTtrP3Z9sMwKBgGagZZNOPvR/PoHpovYaMv3XufT6bXqQgGmJWkN3keMeRT9dINoH\\n3yaBJ/MriUly7NM49iQu4f8w7/I5YNuKtX9yPmag7SkBLr5KmAqgEQiWRyimkpW9\\nec1UATCjYqoTurax/NrUd2AeUc7VhsYH/upaWQ8wgMNiNNnMHtZj28f1AoGACNbu\\nGsvm776WAy8F3HGEAB0T1d/OpGLIgF3OYaIxyOLLYyMXqneQztPKWC88kU9IymZj\\n6x8K1nOHeMf5tkNUZgT5V+UgYnJf3ooJF6CB3+ZcuEWT8bSoPyszvLZJC9S1CQeA\\n6UPrsRUZq9XMKKRRlaVwfDvJlkUczx+RLLhVHxsCgYBwJ0d9poRg3nfGb+OJf2mo\\nfjsjo+2n1e9/ppQK79emITvqRCuqsyXLR+oyiTZIhck4Pz9D898bQnzoMWTj3UUo\\ni5mqby/aZih1ZBYAA63SeuKnh7FAdrXAmGoj/m0D1AELtiiWNN7H5d98kn5md2b/\\nE5awhBdjJd0NoUnhodWslA==\\n-----END PRIVATE KEY-----\\n\",\n" +
+                        "  \"client_email\": \"firebase-adminsdk-m1emn@demofsm-fee63.iam.gserviceaccount.com\",\n" +
+                        "  \"client_id\": \"115535921552187565842\",\n" +
+                        "  \"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\n" +
+                        "  \"token_uri\": \"https://oauth2.googleapis.com/token\",\n" +
+                        "  \"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\n" +
+                        "  \"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-m1emn%40demofsm-fee63.iam.gserviceaccount.com\",\n" +
+                        "  \"universe_domain\": \"googleapis.com\"\n" +
+                        "}\n"
+
+                val stream = ByteArrayInputStream(jsonString.toByteArray(StandardCharsets.UTF_8))
+                val googleCreds =
+                    GoogleCredentials.fromStream(stream).createScoped(arrayListOf(firebaseUrl))
+                googleCreds.refresh()
+
+                uiThread {
+                    sendMessageToFCMV1("e25zTRKXS7WvxnYkdn5rVf:APA91bHj8vgVcGZcPDF5YjPkigSkufM1iZ2p65-wkRM5wcHWBWFzcW1Eq5Ze_2ioMkLIvk21h3sS51_RUfnf_GGWJXF0n9zs3aCrpwOOeQ6NbBn9Ml0TW-cV8RhbWxuRBlBPQ5x85bvb",googleCreds.accessToken.tokenValue)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun sendMessageToFCMV1(token: String, accessToken: String) {
+        doAsync {
+            val fcmUrl = "https://fcm.googleapis.com/v1/projects/demofsm-fee63/messages:send"
+
+            try {
+                // Create the message JSON object
+                val message = JSONObject()
+                val messageContent = JSONObject()
+                messageContent.put("token", token)
+
+                val notification = JSONObject()
+                notification.put("title", "Hello!")
+                notification.put("body", "This is a message from the FCM API V1.")
+                messageContent.put("notification", notification)
+
+                //val jsonObject = JSONObject()
+                val notificationBody = JSONObject()
+                notificationBody.put("body","Leave applied by : "+Pref.user_name!!)
+                notificationBody.put("flag", "flag")
+                notificationBody.put("applied_user_id",Pref.user_id)
+                notificationBody.put("leave_from_date","2024-09-11")
+                notificationBody.put("leave_to_date","2024-09-11")
+                notificationBody.put("leave_reason","test")
+                notificationBody.put("leave_type","1")
+                notificationBody.put("leave_type_id","1")
+                messageContent.put("data", notificationBody)
+
+                message.put("message", messageContent)
+
+                // Set up the connection
+                val url = URL(fcmUrl)
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Authorization", "Bearer $accessToken")
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.doOutput = true
+
+                // Write the message to the output stream
+                val outputStream: OutputStream = conn.outputStream
+                outputStream.write(message.toString().toByteArray())
+                outputStream.flush()
+                outputStream.close()
+
+                // Read the response
+                val responseCode: Int = conn.responseCode
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    println("Message sent successfully")
+                } else {
+                    println("Error sending message: $responseCode")
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            uiThread {
+
+            }
+        }
+
+
 
     }
 
@@ -945,7 +1074,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                 }, 1000)
             } else {
                 window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-                if (mFragType == FragType.MyLearningFragment || mFragType == FragType.SearchLmsFrag || mFragType == FragType.VideoPlayLMS || mFragType == FragType.LeaderboardLmsFrag || mFragType == FragType.SearchLmsLearningFrag || mFragType == FragType.SearchLmsKnowledgeFrag || mFragType == FragType.MyLearningAllVideoList || mFragType == FragType.KnowledgeHubAllVideoList || mFragType == FragType.MyPerformanceFrag || mFragType == FragType.NotificationLMSFragment || mFragType == FragType.LmsQuestionAnswerSet || mFragType == FragType.MyLearningVideoPlay || mFragType == FragType.MyLearningTopicList || mFragType == FragType.BookmarkFrag) {
+                if (mFragType == FragType.MyLearningFragment || mFragType == FragType.SearchLmsFrag || mFragType == FragType.VideoPlayLMS || mFragType == FragType.LeaderboardLmsFrag || mFragType == FragType.SearchLmsLearningFrag || mFragType == FragType.SearchLmsKnowledgeFrag || mFragType == FragType.MyLearningAllVideoList || mFragType == FragType.KnowledgeHubAllVideoList || mFragType == FragType.MyPerformanceFrag || mFragType == FragType.NotificationLMSFragment || mFragType == FragType.LmsQuestionAnswerSet || mFragType == FragType.MyLearningVideoPlay || mFragType == FragType.MyLearningTopicList || mFragType == FragType.BookmarkFrag || mFragType == FragType.BookmarkPlayFrag || mFragType == FragType.PerformanceInsightPage || mFragType == FragType.MyTopicsWiseContents || mFragType == FragType.AllTopicsWiseContents) {
                     window.setStatusBarColor(resources.getColor(R.color.toolbar_lms))
                     toolbar.setBackgroundColor(getResources().getColor(R.color.toolbar_lms))
                 } else {
@@ -1183,6 +1312,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var toolbar: Toolbar
+    private lateinit var include_toolbar: View
     lateinit var searchView: MaterialSearchView
     private lateinit var bottomBar: View
 
@@ -1193,7 +1323,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
     private lateinit var iv_search_icon: ImageView
     lateinit var iv_sync_icon: ImageView
 
-    private lateinit var headerTV: AppCustomTextView
+    public lateinit var headerTV: AppCustomTextView
     private lateinit var home_TV: AppCustomTextView
     private lateinit var add_shop_TV: AppCustomTextView
     private lateinit var nearby_shops_TV: AppCustomTextView
@@ -1226,6 +1356,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
     private lateinit var iv_leaderboard: ImageView
     private lateinit var add_scheduler_email_verification: ImageView
     private lateinit var add_bookmark: ImageView
+    private lateinit var tv_saved_count: AppCustomTextView
     private lateinit var add_template: ImageView
     private lateinit var nearbyShops: AppCustomTextView
     private lateinit var contacts_TV: AppCustomTextView
@@ -1662,7 +1793,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         }
 
 
-        if(!Pref.IsUserWiseLMSFeatureOnly){
+        if (!Pref.IsUserWiseLMSFeatureOnly) {
             if (isTermsAndConditionsPopShow) {
                 callTermsAndConditionsdApi()
             } else {
@@ -3036,7 +3167,9 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                     loadFragment(FragType.MicroLearningListFragment, false, "")
             } else if (intent.getStringExtra("TYPE").equals("lead_work", ignoreCase = true)) {
                 loadFragment(FragType.LeadFrag, false, "")
-            } else if (intent.getStringExtra("TYPE").equals("lms_content_assign", ignoreCase = true)) {
+            } else if (intent.getStringExtra("TYPE")
+                    .equals("lms_content_assign", ignoreCase = true)
+            ) {
                 loadFragment(FragType.NotificationLMSFragment, false, "")
             } else if (intent.getStringExtra("TYPE").equals("clearData", ignoreCase = true)) {
                 isClearData = true
@@ -3234,6 +3367,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
         drawerLayout = findViewById<DrawerLayout>(R.id.drawerlayout)
         toolbar = findViewById<Toolbar>(R.id.toolbar)
+        include_toolbar = findViewById<View>(R.id.include_toolbar)
         searchView = findViewById<MaterialSearchView>(R.id.search_view)
         iv_search_icon = findViewById<ImageView>(R.id.iv_search_icon)
         home_IV = findViewById<ImageView>(R.id.home_IV)
@@ -3295,6 +3429,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         iv_home_icon = findViewById(R.id.iv_home_icon)
         add_scheduler_email_verification = findViewById(R.id.add_scheduler_email_verification)
         add_bookmark = findViewById(R.id.add_bookmark)
+        tv_saved_count = findViewById(R.id.tv_saved_count)
         add_template = findViewById(R.id.add_template)
         iv_home_icon.setOnClickListener(this)
         add_scheduler_email_verification.setOnClickListener(this)
@@ -3850,6 +3985,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
         var menuSubObjLms = MenuSubItems()
         menuSubObjLms.parentMenuName = "LMS"
+        menuSubObjLms.subList.add(MenuItems("LMS Dashboard", 0))
         menuSubObjLms.subList.add(MenuItems("My Learning", 0))
         menuSubObjLms.subList.add(MenuItems("All Topics", 0))
         menuSubObjLms.subList.add(MenuItems("My Topics", 0))
@@ -4047,6 +4183,9 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
  }*/
                     if (obj.name.equals("My Topics", ignoreCase = true)) {
                         loadFragment(FragType.SearchLmsFrag, false, "")
+                    }
+                    if (obj.name.equals("LMS Dashboard", ignoreCase = true)) {
+                        loadFragment(FragType.MyLearningFragment, false, "")
                     }
                     if (obj.name.equals("My Learning", ignoreCase = true)) {
                         loadFragment(FragType.MyLearningTopicList, false, "")
@@ -5025,7 +5164,8 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             }
 
             R.id.iv_home_icon -> {
-
+                CustomStatic.IsHomeClick = true
+                // CustomStatic.IsLMSLeaderboardClick = true
                 if (getFragment() != null && (getFragment() is ViewAllOrderListFragment || getFragment() is NotificationFragment) && (ShopDetailFragment.isOrderEntryPressed || AddShopFragment.isOrderEntryPressed)
                     && AppUtils.getSharedPreferenceslogOrderStatusRequired(this)
                 ) {
@@ -7265,11 +7405,28 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                 setTopBarTitle(getString(R.string.notification))
                 setTopBarVisibility(TopBarConfig.NOTIFICATION)
             }
+
             FragType.BookmarkFrag -> {
                 if (enableFragGeneration) {
                     mFragment = BookmarkFrag()
                 }
-                setTopBarTitle("Bookmarked")
+                setTopBarTitle("Saved Contents")
+                setTopBarVisibility(TopBarConfig.LMS_SEARCH)
+            }
+
+            FragType.BookmarkPlayFrag -> {
+                if (enableFragGeneration) {
+                    mFragment = BookmarkPlayFrag()
+                }
+                setTopBarTitle("Saved Contents")
+                setTopBarVisibility(TopBarConfig.LMS_SEARCH)
+            }
+
+            FragType.PerformanceInsightPage -> {
+                if (enableFragGeneration) {
+                    mFragment = PerformanceInsightPage()
+                }
+                setTopBarTitle("Performance Insights")
                 setTopBarVisibility(TopBarConfig.LMS_SEARCH)
             }
 
@@ -8060,6 +8217,22 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                 setTopBarVisibility(TopBarConfig.LMS_SEARCH)
             }
 
+            FragType.MyTopicsWiseContents -> {
+                if (enableFragGeneration) {
+                    mFragment = MyTopicsWiseContents.getInstance(initializeObject)
+                }
+                setTopBarTitle("My Topics")
+                setTopBarVisibility(TopBarConfig.LMS_SEARCH)
+            }
+
+            FragType.AllTopicsWiseContents -> {
+                if (enableFragGeneration) {
+                    mFragment = AllTopicsWiseContents.getInstance(initializeObject)
+                }
+                setTopBarTitle("All Topics")
+                setTopBarVisibility(TopBarConfig.LMS_SEARCH)
+            }
+
             FragType.SearchLmsKnowledgeFrag -> {
                 if (enableFragGeneration) {
                     mFragment = SearchLmsKnowledgeFrag()
@@ -8514,6 +8687,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
     public fun setTopBarVisibility(mTopBarConfig: TopBarConfig) {
         tv_noti_count.visibility = View.GONE
         add_bookmark.visibility = View.GONE
+        tv_saved_count.visibility = View.GONE
         when (mTopBarConfig) {
             TopBarConfig.NONE -> {
                 iv_home_icon.visibility = View.GONE
@@ -8626,6 +8800,11 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             TopBarConfig.MyLearning -> {
                 iv_home_icon.visibility = View.GONE
                 add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
                 rl_cart.visibility = View.GONE
@@ -8654,6 +8833,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
             TopBarConfig.LMS_SEARCH -> {
                 iv_home_icon.visibility = View.VISIBLE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
                 rl_cart.visibility = View.GONE
@@ -8682,6 +8867,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
             TopBarConfig.LMS_Notification -> {
                 iv_home_icon.visibility = View.GONE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
                 rl_cart.visibility = View.GONE
@@ -8710,6 +8901,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
             TopBarConfig.LMS_VIDEO -> {
                 tv_noti_count.visibility = View.GONE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_home_icon.visibility = View.VISIBLE
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
@@ -9034,7 +9231,7 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                 rl_confirm_btn.visibility = View.GONE
                 iv_list_party.visibility = View.GONE
                 iv_map.visibility = View.GONE
-                iv_settings.visibility = View.VISIBLE
+                iv_settings.visibility = View.GONE
                 ic_calendar.visibility = View.GONE
                 ic_chat_bot.visibility = View.GONE
                 iv_cancel_chat.visibility = View.GONE
@@ -10229,6 +10426,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
             TopBarConfig.Performance_LMS -> {
                 iv_home_icon.visibility = View.VISIBLE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
                 rl_cart.visibility = View.GONE
@@ -10257,6 +10460,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
             TopBarConfig.QUESTION_ANSWER_SET -> {
                 iv_home_icon.visibility = View.VISIBLE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
                 rl_cart.visibility = View.GONE
@@ -10344,8 +10553,14 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             }
 
             TopBarConfig.LEADERBOARD_LMS -> {
-                iv_home_icon.visibility = View.GONE
-                iv_leaderboard.visibility = View.INVISIBLE
+                iv_home_icon.visibility = View.VISIBLE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
+                iv_leaderboard.visibility = View.GONE
                 mDrawerToggle.isDrawerIndicatorEnabled = false
                 iv_search_icon.visibility = View.GONE
                 iv_sync_icon.visibility = View.GONE
@@ -10374,7 +10589,13 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             }
 
             TopBarConfig.LEADERBOARD_OWN_LMS -> {
-                iv_home_icon.visibility = View.GONE
+                iv_home_icon.visibility = View.VISIBLE
+                add_bookmark.visibility = View.VISIBLE
+                if (Pref.CurrentBookmarkCount > 0) {
+                    tv_saved_count.visibility = View.VISIBLE
+                } else {
+                    tv_saved_count.visibility = View.GONE
+                }
                 iv_leaderboard.visibility = View.GONE
                 mDrawerToggle.isDrawerIndicatorEnabled = false
                 iv_search_icon.visibility = View.GONE
@@ -10841,9 +11062,20 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
     @SuppressLint("NewApi")
     override fun onBackPressed() {
         try {
+            (this as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            showToolbar()
             callmoduleEnd()
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+
+        if (Pref.IsUserWiseLMSFeatureOnly){
+            //statusColorPortrait()
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            statusColorPortrait()
+        }else{
+            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            statusColorPortraitWithFsm()
         }
 
         val fm = supportFragmentManager
@@ -10860,9 +11092,9 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         var ttt = fm.backStackEntryCount
         var cf = getFragment()
         println("tag_kali begin ${getFragment()}")
-         if(getFragment() != null && getFragment() is NotificationLMSFragment){
+        if (getFragment() != null && getFragment() is NotificationLMSFragment) {
             loadFragment(FragType.MyLearningFragment, false, DashboardType.Home)
-        } else if (getFragment() != null && getFragment() is MyLearningFragment) {
+        } else if (getFragment() != null && getFragment() is MyLearningFragment && Pref.IsUserWiseLMSFeatureOnly == true) {
             println("tag_kali hinning for MyLearningFragment")
             if (backpressed + 2000 > System.currentTimeMillis()) {
                 finish()
@@ -11685,31 +11917,107 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             if (getFragment() != null && getFragment() is ActivityDtlsFrag) {
                 (getFragment() as ActivityDtlsFrag).updateList()
             }
+        } else if (getFragment() != null && getFragment() is BookmarkPlayFrag) {
+            super.onBackPressed()
+            if (getFragment() != null && getFragment() is BookmarkFrag) {
+                (getFragment() as BookmarkFrag).updateToolbar()
+            }
+            if (getFragment() != null && getFragment() is ActivityDtlsFrag) {
+                (getFragment() as ActivityDtlsFrag).updateList()
+            }
         } else if (getFragment() != null && getFragment() is ContactsFrag) {
             Log.d("login_test_calling12", "")
 
             loadFragment(FragType.DashboardFragment, false, DashboardType.Home)
-        }else if(getFragment() != null && getFragment() is LmsQuestionAnswerSet){
+        } else if (getFragment() != null && getFragment() is LmsQuestionAnswerSet) {
             var k1 = getFragment()
             super.onBackPressed()
             var k2 = getFragment()
             var k3 = k2
-        }else if(getFragment() != null && getFragment() is VideoPlayLMS) {
+        } else if (getFragment() != null && getFragment() is VideoPlayLMS) {
             (getFragment() as VideoPlayLMS).callDestroy()
-            if(VideoPlayLMS.loadedFrom.equals("SearchLmsKnowledgeFrag")){
+            if (VideoPlayLMS.loadedFrom.equals("SearchLmsKnowledgeFrag")) {
                 loadFragment(FragType.SearchLmsKnowledgeFrag, false, "")
-            }else if(VideoPlayLMS.loadedFrom.equals("SearchLmsFrag")){
+            }
+            else if (VideoPlayLMS.loadedFrom.equals("AllTopicsWiseContents")) {
+                try {
+                    loadFragment(
+                        FragType.AllTopicsWiseContents,
+                        false,
+                        AllTopicsWiseContents.topic_id + "~" + AllTopicsWiseContents.topic_name
+                    )
+                } catch (e: Exception) {
+                    loadFragment(FragType.AllTopicsWiseContents, false, "")
+                }
+            }
+            /*else if (VideoPlayLMS.loadedFrom.equals("MyTopicsWiseContents")) {
+                loadFragment(FragType.MyTopicsWiseContents, false, "")
+            }*/
+            /*else if (VideoPlayLMS.loadedFrom.equals("SearchLmsFrag")) {
                 loadFragment(FragType.SearchLmsFrag, false, "")
-            }else if(VideoPlayLMS.loadedFrom.equals("SearchLmsLearningFrag")){
-                loadFragment(FragType.SearchLmsLearningFrag, false, "")
-            }else if(VideoPlayLMS.loadedFrom.equals("LMSDASHBOARD")){
+            }*/ else if (VideoPlayLMS.loadedFrom.equals("SearchLmsLearningFrag")) {
+                try {
+                    loadFragment(
+                        FragType.SearchLmsLearningFrag,
+                        false,
+                        SearchLmsLearningFrag.topic_id + "~" + SearchLmsLearningFrag.topic_name
+                    )
+                } catch (e: Exception) {
+                    loadFragment(FragType.SearchLmsLearningFrag, false, "")
+                }
+            }
+            else if (VideoPlayLMS.loadedFrom.equals("MyTopicsWiseContents")) {
+                try {
+                    loadFragment(
+                        FragType.MyTopicsWiseContents,
+                        false,
+                        MyTopicsWiseContents.topic_id + "~" + MyTopicsWiseContents.topic_name
+                    )
+                } catch (e: Exception) {
+                    loadFragment(FragType.MyTopicsWiseContents, false, "")
+                }
+            }
+
+            /*else if (LeaderboardLmsFrag.loadedFrom.equals("MyPerformanceFrag")) {
+
+                try {
+                    if (getFragment() != null && getFragment() is LeaderboardLmsFrag) {
+                    loadFragment(FragType.MyPerformanceFrag, false, "")
+                    }
+                } catch (e: Exception) {
+                    loadFragment(FragType.MyPerformanceFrag, false, "")
+                }
+            }
+
+            else if (LeaderboardLmsFrag.loadedFrom.equals("PerformanceInsightPage")) {
+                try {
+                    loadFragment(
+                        FragType.PerformanceInsightPage,
+                        false,""
+                    )
+                } catch (e: Exception) {
+                    loadFragment(FragType.PerformanceInsightPage, false, "")
+                }
+            }*/
+
+            else if (getFragment() != null && getFragment() is PerformanceInsightPage) {
+                loadFragment(FragType.MyLearningTopicList, false, "")
+            }
+
+            else if (VideoPlayLMS.loadedFrom.equals("LMSDASHBOARD")) {
+                loadFragment(FragType.MyLearningFragment, false, DashboardType.Home)
+            } else {
                 loadFragment(FragType.MyLearningFragment, false, DashboardType.Home)
             }
-            else{
-                loadFragment(FragType.MyLearningFragment, false, DashboardType.Home)
-            }
-        }else if(getFragment() != null && getFragment() is SearchLmsLearningFrag){
+        } else if (getFragment() != null && getFragment() is SearchLmsLearningFrag) {
             loadFragment(FragType.MyLearningTopicList, false, "")
+        }
+
+        else if (getFragment() != null && getFragment() is MyTopicsWiseContents) {
+            loadFragment(FragType.SearchLmsFrag, false, "")
+        }
+        else if (getFragment() != null && getFragment() is AllTopicsWiseContents) {
+            loadFragment(FragType.SearchLmsKnowledgeFrag, false, "")
         }
 
         /*else if(getFragment() != null && getFragment() is VideoPlayLMS){
@@ -11792,12 +12100,10 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                 }
 
 
-
                 getFragment() is SearchLmsFrag || getFragment() is SearchLmsKnowledgeFrag ||
                         getFragment() is MyPerformanceFrag || getFragment() is LeaderboardLmsFrag || getFragment() is MyLearningTopicList -> {
                     loadFragment(FragType.MyLearningFragment, false, DashboardType.Home)
                 }
-
 
 
                 /*getFragment() is VideoPlayLMS -> {
@@ -18329,7 +18635,75 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                         )
                         //m.send()
                         val fileUrl = Uri.parse(sendingPath)
-                        m.send(fileUrl.path)
+                        //m.send(fileUrl.path)
+
+                        try{
+                            var emailRecpL = Pref.recipient_email_ids.split(",")
+                            var toArr = arrayOf("")
+                            toArr = Array<String>(emailRecpL.size){""}
+                            for(i in 0..emailRecpL.size-1){
+                                toArr[i]=emailRecpL[i]
+                            }
+
+                            val props = Properties().apply {
+                                put("mail.smtp.host", "smtp.gmail.com")  // SMTP server host
+                                put("mail.smtp.port", "587")                      // SMTP port
+                                put("mail.smtp.auth", "true")
+                                put("mail.smtp.starttls.enable", "true")          // Enable STARTTLS
+                                put("mail.smtp.ssl.protocols", "TLSv1.2")         // Specify TLS version
+                                put("mail.smtp.ssl.trust", "smtp.gmail.com")  // Trust the server
+                            }
+                            if (Build.VERSION.SDK_INT < 21) {
+                                try {
+                                    ProviderInstaller.installIfNeeded(mContext)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
+                            val session = Session.getInstance(props, object : Authenticator() {
+                                override fun getPasswordAuthentication(): PasswordAuthentication {
+                                    return PasswordAuthentication("eurobondacp02@gmail.com", "nuqfrpmdjyckkukl")
+                                }
+                            })
+                            try {
+                                val message = MimeMessage(session).apply {
+                                    setFrom(InternetAddress("eurobondacp02@gmail.com"))            // Sender's email
+                                    //setRecipients(Message.RecipientType.TO, InternetAddress.parse("sumanbacharofc@gmail.com"))  // Recipient's email
+                                    setRecipients(Message.RecipientType.TO, InternetAddress.parse(Pref.recipient_email_ids))  // Recipient's email
+                                    subject = "Quotation for ${ViewAllQuotListFragment.shop_name} created on dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)}."                                    // Email subject
+                                    //setText("Quotation Generated by  ${Pref.user_name} dated  ${AppUtils.getCurrentDate_DD_MM_YYYY()}.")  // Email body
+                                }
+
+                                val textPart = MimeBodyPart().apply {
+                                    setText("Hello Team,  \n Please find attached Quotation No. ${addQuotEditResult.quotation_number} Dated ${addQuotEditResult.save_date_time!!.split(" ").get(0)} for ${ViewAllQuotListFragment.shop_name} \n\n\n Regards \n${Pref.user_name}.")
+                                }
+                                val file = File(fileUrl.path)
+                                // Create the attachment part
+                                val attachmentPart = MimeBodyPart().apply {
+                                    val source = FileDataSource(File(fileUrl.path)) // Load the file from the file path
+                                    dataHandler = DataHandler(source)           // Attach the file
+                                    //fileName = File(fileUrl.path).name              // Set the file name
+                                    fileName = file.name              // Set the file name
+                                }
+
+                                attachmentPart.fileName = file.name
+
+                                // Combine the parts into a multipart
+                                val multipart = MimeMultipart().apply {
+                                    addBodyPart(textPart)        // Add the text part
+                                    addBodyPart(attachmentPart)  // Add the file attachment part
+                                }
+                                message.setContent(multipart)
+                                // Send the message
+                                Transport.send(message)
+                                println("Email sent successfully!")
+                            } catch (e: MessagingException) {
+                                e.printStackTrace()
+                                println("Failed to send email: ${e.message}")
+                            }
+                        }catch (e:Exception){
+                            e.printStackTrace()
+                        }
                     }
 
 
@@ -20139,7 +20513,8 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
     private fun trackLMSModuleLoad(mFragType: FragType) {
         try {
-            var lmsL = AppDatabase.getDBInstance()!!.lmsUserInfoDao().getAllByDateNotCalculated(AppUtils.getCurrentDateyymmdd()) as ArrayList<LmsUserInfoEntity>
+            var lmsL = AppDatabase.getDBInstance()!!.lmsUserInfoDao()
+                .getAllByDateNotCalculated(AppUtils.getCurrentDateyymmdd()) as ArrayList<LmsUserInfoEntity>
             var lmsModuleObj = LmsUserInfoEntity()
 
             if (mFragType.name.equals("SearchLmsFrag")) {
@@ -20158,10 +20533,15 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
             if (!lmsModuleObj.module_name.equals("")) {
                 if (lmsL.size > 0 || mFragType.name.equals("MyLearningFragment")) {
                     var lastFilterData = lmsL.last()
-                        val endTimeMillis = System.currentTimeMillis()
-                        val duration = AppUtils.getTimeFromTimeSpan(lastFilterData.module_startTimeInMilli, endTimeMillis.toString())
-                        AppDatabase.getDBInstance()!!.lmsUserInfoDao().updateEnd(endTimeMillis.toString(),true,
-                            lastFilterData.module_startTimeInMilli.toString(),duration.toString())
+                    val endTimeMillis = System.currentTimeMillis()
+                    val duration = AppUtils.getTimeFromTimeSpan(
+                        lastFilterData.module_startTimeInMilli,
+                        endTimeMillis.toString()
+                    )
+                    AppDatabase.getDBInstance()!!.lmsUserInfoDao().updateEnd(
+                        endTimeMillis.toString(), true,
+                        lastFilterData.module_startTimeInMilli.toString(), duration.toString()
+                    )
                 }
 
                 lmsModuleObj.count_of_use = "1"
@@ -20184,15 +20564,21 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         }
     }
 
-    fun callmoduleEnd(){
+    fun callmoduleEnd() {
         try {
-            var lmsL = AppDatabase.getDBInstance()!!.lmsUserInfoDao().getAllByDateNotCalculated(AppUtils.getCurrentDateyymmdd()) as ArrayList<LmsUserInfoEntity>
-            if(lmsL.size>0){
+            var lmsL = AppDatabase.getDBInstance()!!.lmsUserInfoDao()
+                .getAllByDateNotCalculated(AppUtils.getCurrentDateyymmdd()) as ArrayList<LmsUserInfoEntity>
+            if (lmsL.size > 0) {
                 var lastFilterData = lmsL.last()
                 val endTimeMillis = System.currentTimeMillis()
-                val duration = AppUtils.getTimeFromTimeSpan(lastFilterData.module_startTimeInMilli, endTimeMillis.toString())
-                AppDatabase.getDBInstance()!!.lmsUserInfoDao().updateEnd(endTimeMillis.toString(),true,
-                    lastFilterData.module_startTimeInMilli.toString(),duration.toString())
+                val duration = AppUtils.getTimeFromTimeSpan(
+                    lastFilterData.module_startTimeInMilli,
+                    endTimeMillis.toString()
+                )
+                AppDatabase.getDBInstance()!!.lmsUserInfoDao().updateEnd(
+                    endTimeMillis.toString(), true,
+                    lastFilterData.module_startTimeInMilli.toString(), duration.toString()
+                )
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -20202,24 +20588,38 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
     }
 
 
-    data class LMSModule(var user_id:String="",var user_lms_info_list:ArrayList<LMSInfo> = ArrayList())
-    data class LMSInfo(var module_name:String="",var count_of_use:String="",var time_spend:String="",var last_current_loc_lat:String="",
-                       var last_current_loc_long:String="",var last_current_loc_address:String="",var date_time:String="",var phone_model:String="")
-    fun apiCallforUserWiseLMSModulesInfoSave(){
+    data class LMSModule(
+        var user_id: String = "",
+        var user_lms_info_list: ArrayList<LMSInfo> = ArrayList()
+    )
+
+    data class LMSInfo(
+        var module_name: String = "",
+        var count_of_use: String = "",
+        var time_spend: String = "",
+        var last_current_loc_lat: String = "",
+        var last_current_loc_long: String = "",
+        var last_current_loc_address: String = "",
+        var date_time: String = "",
+        var phone_model: String = ""
+    )
+
+    fun apiCallforUserWiseLMSModulesInfoSave() {
 
         try {
             var dataL = AppDatabase.getDBInstance()!!.lmsUserInfoDao().getAll()
-            if(dataL.size>0){
+            if (dataL.size > 0) {
                 var syncObj = LMSModule()
                 syncObj.user_id = Pref.user_id!!.toString()!!
-                for(i in 0..dataL.size-1){
+                for (i in 0..dataL.size - 1) {
                     var dtlsObj = LMSInfo()
                     dtlsObj.module_name = dataL.get(i).module_name
                     dtlsObj.count_of_use = "1"
                     dtlsObj.time_spend = dataL.get(i).time_spend
                     dtlsObj.last_current_loc_lat = Pref.current_latitude
                     dtlsObj.last_current_loc_long = Pref.current_longitude
-                    dtlsObj.last_current_loc_address =getAddressFromLatLng(Pref.current_latitude,Pref.current_longitude)
+                    dtlsObj.last_current_loc_address =
+                        getAddressFromLatLng(Pref.current_latitude, Pref.current_longitude)
                     dtlsObj.date_time = dataL.get(i).date_time
                     dtlsObj.phone_model = AppUtils.getDeviceName()
                     syncObj.user_lms_info_list.add(dtlsObj)
@@ -20235,12 +20635,12 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
                             if (response.status == NetworkConstant.SUCCESS) {
                                 println("tag_ssav $response.status")
 
-                                    doAsync {
-                                        AppDatabase.getDBInstance()!!.lmsUserInfoDao().deleteAll()
-                                        uiThread {
+                                doAsync {
+                                    AppDatabase.getDBInstance()!!.lmsUserInfoDao().deleteAll()
+                                    uiThread {
 
-                                        }
                                     }
+                                }
                             } else {
                                 println("tag_ssav elseee")
                             }
@@ -20258,9 +20658,10 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
 
     }
 
-    private fun getAddressFromLatLng(lat: String,lon:String):String {
+    private fun getAddressFromLatLng(lat: String, lon: String): String {
         try {//22.6068776, 88.4898951
-            var address = LocationWizard.getAdressFromLatlng(mContext, lat.toDouble(), lon.toDouble())
+            var address =
+                LocationWizard.getAdressFromLatlng(mContext, lat.toDouble(), lon.toDouble())
 //        Timber.e("Shop address (Add Shop)======> $address")
             Timber.e("Shop address (Add Shop)======> $address")
 
@@ -20272,6 +20673,93 @@ class DashboardActivity : BaseActivity(), View.OnClickListener, BaseNavigation,
         } catch (e: Exception) {
             e.printStackTrace()
             return "Unknown"
+        }
+    }
+
+    fun updateBookmarkCnt() {
+        try {
+            val repository = LMSRepoProvider.getTopicList()
+            BaseActivity.compositeDisposable.add(
+                repository.getBookmarkedApiCall(Pref.user_id.toString())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribeOn(Schedulers.io())
+                    .subscribe({ result ->
+                        var response = result as BookmarkFetchResponse
+                        if (response.status == NetworkConstant.SUCCESS) {
+                            Pref.CurrentBookmarkCount =
+                                response.bookmark_list.distinctBy { it.content_id.toString() }.size
+                            tv_saved_count.visibility = View.VISIBLE
+                            tv_saved_count.text = Pref.CurrentBookmarkCount.toString()
+                        } else {
+                            Pref.CurrentBookmarkCount = 0
+                            tv_saved_count.visibility = View.GONE
+                            //tv_saved_count.text = Pref.CurrentBookmarkCount.toString()
+                        }
+                    }, { error ->
+                        error.printStackTrace()
+                        Pref.CurrentBookmarkCount = 0
+                    })
+            )
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+            Pref.CurrentBookmarkCount = 0
+        }
+    }
+
+    fun hideToolbar(){
+        try {
+            Handler().postDelayed(Runnable {
+                include_toolbar.visibility = View.GONE
+            }, 1)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun statusColorLandScape(){
+        try {
+            window.setStatusBarColor(resources.getColor(R.color.toolbartransparent_lms))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            window.setStatusBarColor(resources.getColor(R.color.toolbartransparent_lms))
+        }
+    }
+
+    fun statusColorPortrait(){
+        try {
+            window.setStatusBarColor(resources.getColor(R.color.toolbar_lms))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            window.setStatusBarColor(resources.getColor(R.color.toolbar_lms))
+        }
+    }
+
+    fun statusColorPortraitWithFsm(){
+        try {
+            window.setStatusBarColor(resources.getColor(R.color.colorPrimary))
+        } catch (e: Exception) {
+            e.printStackTrace()
+            window.setStatusBarColor(resources.getColor(R.color.colorPrimary))
+        }
+    }
+
+    fun showToolbar(){
+        try {
+            include_toolbar.visibility = View.VISIBLE
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun toggleToolbar(){
+        try {
+            if(include_toolbar.visibility == View.VISIBLE){
+                include_toolbar.visibility = View.GONE
+            }else{
+                include_toolbar.visibility = View.VISIBLE
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

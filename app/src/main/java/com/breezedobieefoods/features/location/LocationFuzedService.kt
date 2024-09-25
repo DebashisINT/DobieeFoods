@@ -319,7 +319,7 @@ class LocationFuzedService : Service(), GoogleApiClient.ConnectionCallbacks, Goo
 
             val notificationManager = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (Pref.IsUserWiseLMSFeatureOnly){
-                notificationTitle = "${AppUtils.hiFirstNameText()}, Thanks for using LMS"
+                notificationTitle = "${AppUtils.hiFirstNameText()}, thanks for using MobiLearn."
                 //Pending push notification test
 
             }else{
@@ -386,8 +386,16 @@ class LocationFuzedService : Service(), GoogleApiClient.ConnectionCallbacks, Goo
                     .setContentIntent(pendingIntent)
                     .setOngoing(true)
                     .build()
+
+                if(Build.VERSION.SDK_INT == 28){
+                    println(" 28")
+                    startForeground(AppConstant.FOREGROUND_SERVICE, notificationn)
+                }else{
+                    println("tag_start_foreground not 28")
+                    startForeground(AppConstant.FOREGROUND_SERVICE, notificationn,ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+                }
                 //startForeground(AppConstant.FOREGROUND_SERVICE, notificationn,ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
-                startForeground(AppConstant.FOREGROUND_SERVICE, notificationn)
+                //startForeground(AppConstant.FOREGROUND_SERVICE, notificationn)
 
 
             }

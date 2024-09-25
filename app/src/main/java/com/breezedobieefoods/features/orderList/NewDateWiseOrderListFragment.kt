@@ -71,6 +71,8 @@ import com.breezedobieefoods.features.shopdetail.presentation.AddCollectionDialo
 import com.breezedobieefoods.features.shopdetail.presentation.AddCollectionWithOrderDialog
 import com.breezedobieefoods.features.shopdetail.presentation.api.addcollection.AddCollectionRepoProvider
 import com.breezedobieefoods.features.shopdetail.presentation.model.addcollection.AddCollectionInputParamsModel
+import com.breezedobieefoods.features.viewAllOrder.OrdResponse
+import com.breezedobieefoods.features.viewAllOrder.api.OrderDetailsListRepoProvider
 import com.breezedobieefoods.features.viewAllOrder.api.addorder.AddOrderRepoProvider
 import com.breezedobieefoods.features.viewAllOrder.model.AddOrderInputParamsModel
 import com.breezedobieefoods.features.viewAllOrder.model.AddOrderInputProductList
@@ -195,7 +197,47 @@ class NewDateWiseOrderListFragment : BaseFragment(), DatePickerListener, View.On
             getBillListApi()
         else
             initShopList()*/
+        if(AppUtils.isOnline(mContext) && Pref.IsRetailOrderStatusRequired){
+            orderStatusUpdateApi()
+        }
 
+    }
+
+    private fun orderStatusUpdateApi() {
+        val repository = OrderDetailsListRepoProvider.provideOrderDetailsListRepository()
+        progress_wheel.spin()
+        BaseActivity.compositeDisposable.add(
+            repository.getOrderStatusL()
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribeOn(Schedulers.io())
+                .subscribe({ result ->
+                    val response = result as OrdResponse
+                    if (response.status == NetworkConstant.SUCCESS) {
+                        progress_wheel.stopSpinning()
+                        doAsync {
+                            try {
+                                if(response.order_status_list.size>0){
+                                    for(i in 0..response.order_status_list.size-1){
+                                        var obj = response.order_status_list.get(i)
+                                        AppDatabase.getDBInstance()!!.orderDetailsListDao().updateOrdStatus(obj.Order_Code,obj.OrderStatus)
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                            uiThread {
+
+                            }
+                        }
+
+                    } else {
+                        progress_wheel.stopSpinning()
+                    }
+                }, { error ->
+                    error.printStackTrace()
+                    progress_wheel.stopSpinning()
+                })
+        )
     }
 
     private fun getBillListApi() {

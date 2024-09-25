@@ -303,12 +303,14 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
 
         Pref.FirstLogiForTheDayTag = true
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Pref.IsAllowGPSTrackingInBackgroundForLMS){
             //initPermissionCheck()
             showCallLogProminentDisclosure()
         }
-        else
+        else{
+            getNotificationPermission()
             getIMEI()
+        }
 
         Pref.IsLoggedIn = false
 
@@ -922,10 +924,17 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
                                     Pref.firebase_k = "key="+configResponse.firebase_k!!
                                 //end mantis id 0027432 firebase_k functionality Puja 08-05-2024  v4.2.7
 
-                                //begin mantis id 0027432 Question_After_No_Of_Content functionality Puja 08-05-2024 v4.2.7
-                                if (configResponse.Question_After_No_Of_Content != null)
-                                    Pref.Question_After_No_Of_Content = configResponse.Question_After_No_Of_Content!!
-                                //end mantis id 0027432 Question_After_No_Of_Content functionality Puja 08-05-2024  v4.2.7
+                                //begin mantis id 0027683 QuestionAfterNoOfContentForLMS functionality Puja 05-08-2024  v4.2.9
+                                if (configResponse.QuestionAfterNoOfContentForLMS != null)
+                                    Pref.QuestionAfterNoOfContentForLMS = configResponse.QuestionAfterNoOfContentForLMS!!
+                                //end mantis id 0027683 QuestionAfterNoOfContentForLMS functionality Puja 05-08-2024  v4.2.9
+
+
+                                if (configResponse.IsAllowGPSTrackingInBackgroundForLMS != null)
+                                    Pref.IsAllowGPSTrackingInBackgroundForLMS = configResponse.IsAllowGPSTrackingInBackgroundForLMS!!
+                                //Suman 18-09-2024 mantis 27700
+                                if (configResponse.IsRetailOrderStatusRequired != null)
+                                    Pref.IsRetailOrderStatusRequired = configResponse.IsRetailOrderStatusRequired!!
                             }
                             isApiInitiated = false
                             /*API_Optimization 02-03-2022*/
@@ -4058,6 +4067,21 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
         //}
     }
 
+    fun getNotificationPermission(){
+        var permissionList = arrayOf<String>( Manifest.permission.POST_NOTIFICATIONS)
+        permissionUtils = PermissionUtils(this, object : PermissionUtils.OnPermissionListener {
+            override fun onPermissionGranted() {
+
+            }
+
+            override fun onPermissionNotGranted() {
+                // showSnackMessage(getString(R.string.accept_permission)) test code
+            }
+
+        },permissionList)
+
+    }
+
     private fun initView() {
         rl_main_new=findViewById(R.id.rl_main_new)
         val login_TV= findViewById<ImageView>(R.id.login_TV)
@@ -5209,8 +5233,10 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
 //                                    openDialogPopupIMEI("Hi! $realName ($username)","Current Login ID has already been used from another mobile device. You are not allowed to " +
 //                                            "login from your current device due to IMEI BLOCKED! Please talk to Admin.")
 
-                                    openDialogPopupIMEI("Hi! $realName ($username)","The Current Device is already in use by another User ($realName). You are not allowed to " +
-                                            "login from your current device due to IMEI BLOCKED! Please talk to Admin.")
+                                    /*openDialogPopupIMEI("Hi! $realName ($username)","The Current Device is already in use by another User ($realName). You are not allowed to " +
+                                            "login from your current device due to IMEI BLOCKED! Please talk to Admin.")*/
+
+                                    openDialogPopupIMEI("Hi! $realName ($username)","This device is currently in use by another user.IMEI is blocked. Please reach out to the admin for assistance.")
                                 }else{
                                     openDialogPopup(loginResponse.message!!)
                                 }
@@ -9788,6 +9814,7 @@ class LoginActivity : BaseActivity(), View.OnClickListener, LocationListener {
 
     }
 
+    @SuppressLint("SuspiciousIndentation")
     private fun getQuestionAnswerSubmitDetails() {
         /*progress_wheel.spin()*/
         try {

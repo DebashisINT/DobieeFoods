@@ -1061,7 +1061,7 @@ object Pref : PreferenceHolder() {
 
     var prevShopAudioSyncTimeStamp: Long by bindToPreferenceField(0, "prevShopAudioSyncTimeStamp")
 
-    var Question_After_No_Of_Content: String by bindToPreferenceField("1", "Question_After_No_Of_Content")
+    var QuestionAfterNoOfContentForLMS: String by bindToPreferenceField("1", "QuestionAfterNoOfContentForLMS")
 
     var videoCompleteCount: String by bindToPreferenceField("0", "videoCompleteCount")
 
@@ -1094,6 +1094,12 @@ object Pref : PreferenceHolder() {
     var LastVideoPlay_ContentParcent : String by bindToPreferenceField("", "LastVideoPlay_ContentParcent")
    // var LastVideoPlay_ContentParcentStatus : String by bindToPreferenceField("", "LastVideoPlay_ContentParcentStatus")
 
+    var IsAllowGPSTrackingInBackgroundForLMS: Boolean by bindToPreferenceField(true, "IsAllowGPSTrackingInBackgroundForLMS")
+
+    var CurrentBookmarkCount: Int by bindToPreferenceField(0, "CurrentBookmarkCount")
+
+    //Suman 17-09-2024 mantis 27700
+    var IsRetailOrderStatusRequired: Boolean by bindToPreferenceField(false, "IsRetailOrderStatusRequired")
 }
 
 

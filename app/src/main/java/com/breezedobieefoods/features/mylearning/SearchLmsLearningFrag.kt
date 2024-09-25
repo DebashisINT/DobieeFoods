@@ -1,8 +1,10 @@
 package com.breezedobieefoods.features.mylearning
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.text.Editable
@@ -31,6 +33,7 @@ import com.breezedobieefoods.base.presentation.BaseActivity
 import com.breezedobieefoods.base.presentation.BaseFragment
 import com.breezedobieefoods.features.dashboard.presentation.DashboardActivity
 import com.breezedobieefoods.features.mylearning.apiCall.LMSRepoProvider
+import com.modigoldbreeze.features.mylearning.MyLearningProgressAdapter
 import com.pnikosis.materialishprogress.ProgressWheel
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.schedulers.Schedulers
@@ -72,10 +75,6 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
     var contentL: ArrayList<ContentL> = ArrayList()
 
 
-    /*companion object {
-        var myLearningVideoL: ArrayList<LarningList> = ArrayList()
-    }*/
-
     companion object {
         var topic_id: String = ""
         var topic_name: String = ""
@@ -108,14 +107,13 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
         savedInstanceState: Bundle?
     ): View? {
         val view = inflater!!.inflate(R.layout.fragment_search_lms_learning, container, false)
+        (mContext as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         initView(view)
         return view
     }
 
     private fun initView(view: View) {
         requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
-
-       // println("tag_myLearningVideoL"+myLearningVideoL)
 
         //performance
         ll_lms_performance = view.findViewById(R.id.ll_lms_performance)
@@ -137,16 +135,12 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
         iv_lms_knowledgehub = view.findViewById(R.id.iv_lms_knowledgehub)
         tv_lms_knowledgehub = view.findViewById(R.id.tv_lms_knowledgehub)
 
-        iv_lms_mylearning.setImageResource(R.drawable.my_learning_colored)
-        iv_lms_leaderboard.setImageResource(R.drawable.home_lms)
-        iv_lms_performance.setImageResource(R.drawable.performance_black)
-        iv_lms_knowledgehub.setImageResource(R.drawable.all_topic_black)
-        iv_lms_performance.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_leaderboard.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_knowledgehub.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        iv_lms_performance.setImageResource(R.drawable.performance_insights_checked)
+        iv_lms_mylearning.setImageResource(R.drawable.open_book_lms_)
+        iv_lms_knowledgehub.setImageResource(R.drawable.set_of_books_lms)
 
-        tv_lms_performance.setTextColor(getResources().getColor(R.color.black))
-        tv_lms_mylearning.setTextColor(getResources().getColor(R.color.toolbar_lms))
+        tv_lms_performance.setTextColor(getResources().getColor(R.color.toolbar_lms))
+        tv_lms_mylearning.setTextColor(getResources().getColor(R.color.black))
         tv_lms_leaderboard.setTextColor(getResources().getColor(R.color.black))
         tv_lms_knowledgehub.setTextColor(getResources().getColor(R.color.black))
 
@@ -159,9 +153,9 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
         ll_continue_learning = view.findViewById(R.id.ll_continue_learning)
 
         progress_wheel.stopSpinning()
-
+        //API calling for my learning topic list data fetching
         getMyLarningInfoAPI()
-
+        //Code start for auto search
         et_search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
             @SuppressLint("SuspiciousIndentation")
@@ -182,7 +176,7 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
                 }
             override fun afterTextChanged(s: Editable) {}
         })
-
+        //Code end for auto search
         ll_lms_performance.setOnClickListener(this)
         ll_lms_mylearning.setOnClickListener(this)
         ll_lms_leaderboard.setOnClickListener(this)
@@ -250,22 +244,16 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
 
     override fun onClick(p0: View?) {
         when (p0?.id) {
+            //My topics page redirection -> Assigned to user mantis - 0027573
             ll_lms_mylearning.id -> {
                 (mContext as DashboardActivity).loadFragment(
-                    FragType.MyLearningTopicList,
+                    FragType.SearchLmsFrag,
                     true,
                     ""
                 )
             }
 
-            ll_lms_leaderboard.id -> {
-                (mContext as DashboardActivity).loadFragment(
-                    FragType.MyLearningFragment,
-                    true,
-                    ""
-                )
-            }
-
+            //All topics page redirection  mantis - 0027570
             ll_lms_knowledgehub.id -> {
                 (mContext as DashboardActivity).loadFragment(
                     FragType.SearchLmsKnowledgeFrag,
@@ -273,18 +261,17 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
                     ""
                 )
             }
-
+            //Performance Insight page redirection
             ll_lms_performance.id -> {
                 (mContext as DashboardActivity).loadFragment(
-                    FragType.MyPerformanceFrag,
+                    FragType.PerformanceInsightPage,
                     true,
                     ""
                 )
             }
-
+            //Code start for search click functionality from contentlist
             ll_frag_search_root.id -> {
                 AppUtils.hideSoftKeyboard(mContext as DashboardActivity)
-               // if (!et_search.text.toString().trim().equals("")) {
                     progress_wheel.spin()
                     doAsync {
                         var tempSearchL = contentL.filter { it.content_title.contains(et_search.text.toString().trim(), ignoreCase = true) || it.content_description.contains(et_search.text.toString().trim(), ignoreCase = true)  } as ArrayList<ContentL>
@@ -302,12 +289,15 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
                             }
                         }
                     }
-              //  }
             }
+            //Code end for search click functionality from contentlist
+
+            //code start for through voice assistance search in assigned topic list
             ll_voice.id ->{
                 suffixText = et_search.text.toString().trim()
                 startVoiceInput()
             }
+            //code end for through voice assistance search in assigned topic list
         }
     }
 
@@ -319,8 +309,6 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
         val intent: Intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"en-US")
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "en-US")
-        //intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"hi")
-        //intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,Locale.ENGLISH)
         intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Hello, How can I help you?")
         try {
             startActivityForResult(intent, 7009)
@@ -351,62 +339,16 @@ class SearchLmsLearningFrag : BaseFragment() , View.OnClickListener, MyLearningP
         }
     }
 
+    //Code start for Redirect to Video play screen as selected content
     override fun onItemClick(item: ContentL , position: Int) {
         val store_topic_id = topic_id
         val store_topic_name = topic_name
         val store_content_id = item.content_id
-        //getwiselistAPIcalling(store_topic_id.toInt(),store_content_id.toInt(),store_topic_name)
         VideoPlayLMS.loadedFrom = "SearchLmsLearningFrag"
         CustomStatic.VideoPosition = position
         Pref.videoCompleteCount = "0"
         (mContext as DashboardActivity).loadFragment(FragType.VideoPlayLMS, true, topic_id+"~"+ topic_name/*+"~"+position*/)
     }
-
-    private fun getwiselistAPIcalling(store_topic_id: Int, store_content_id: Int ,store_topic_name:String) {
-        try {
-            progress_wheel.visibility = View.VISIBLE
-            val repository = LMSRepoProvider.getTopicList()
-            BaseActivity.compositeDisposable.add(
-                repository.getTopicsWiseVideo(Pref.user_id!!, store_topic_id.toString())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribeOn(Schedulers.io())
-                    .subscribe({ result ->
-                        val response = result as VideoTopicWiseResponse
-                        if (response.status == NetworkConstant.SUCCESS) {
-                            progress_wheel.visibility = View.GONE
-                            try {
-                                if (response.content_list!=null && response.content_list.size>0) {
-
-                                val singleItemVideo = response.content_list.filter { it.content_id.toString().equals(store_content_id.toString()) }
-                                    (mContext as DashboardActivity).loadFragment(FragType.MyLearningVideoPlay, true, singleItemVideo+"~"+store_topic_id+"~"+store_topic_name)
-
-                                }else{
-                                    Toast.makeText(mContext, "No video found", Toast.LENGTH_SHORT).show()
-
-                                }
-                            }catch (ex:Exception){
-                                ex.printStackTrace()
-                            }
-                        }else{
-                            progress_wheel.visibility = View.GONE
-
-                            (mContext as DashboardActivity).showSnackMessage(getString(R.string.no_data_found))
-
-                        }
-                    }, { error ->
-                        progress_wheel.visibility = View.GONE
-
-                        (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
-                    })
-            )
-        } catch (ex: Exception) {
-            ex.printStackTrace()
-            progress_wheel.visibility = View.GONE
-
-            (mContext as DashboardActivity).showSnackMessage(getString(R.string.something_went_wrong))
-        }
-
-    }
-
+    //Code end for Redirect to Video play screen as selected content
 
 }

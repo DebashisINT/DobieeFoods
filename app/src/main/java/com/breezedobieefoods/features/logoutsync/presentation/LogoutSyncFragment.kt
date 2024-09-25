@@ -7247,7 +7247,7 @@ class LogoutSyncFragment : BaseFragment(), View.OnClickListener {
                                  calllogoutApi(Pref.user_id!!, Pref.session_token!!)
                             }
                         }, { error ->
-                            (this as DashboardActivity).showSnackMessage(this.getString(R.string.unable_to_sync))
+                            (mContext as DashboardActivity).showSnackMessage(this.getString(R.string.unable_to_sync))
                             calllogoutApi(Pref.user_id!!, Pref.session_token!!)
                         })
                 )

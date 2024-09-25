@@ -2,6 +2,7 @@ package com.breezedobieefoods.features.viewAllOrder.api
 
 import com.breezedobieefoods.app.NetworkConstant
 import com.breezedobieefoods.features.login.model.productlistmodel.NewOdrScrOrderListModel
+import com.breezedobieefoods.features.viewAllOrder.OrdResponse
 import com.breezedobieefoods.features.viewAllOrder.model.NewOrderDataModel
 import com.breezedobieefoods.features.viewAllOrder.model.NewOrderOrderHistoryModel
 import com.breezedobieefoods.features.viewAllOrder.model.ViewAllOrderListResponseModel
@@ -35,6 +36,12 @@ interface OrderDetailsListApi {
     @FormUrlEncoded
     @POST("OrderWithProductAttribute/NewProductOrderList")
     fun getNewOrderHistoryDataSimplefied(@Field("session_token") session_token: String, @Field("user_id") user_id: String): Observable<NewOdrScrOrderListModel>
+
+
+    @FormUrlEncoded
+    @POST("Order/OrderStatusList")
+    fun getOrderStatusLApi(@Field("user_id") user_id: String): Observable<OrdResponse>
+
 
     /**
      * Companion object to create the GithubApiService

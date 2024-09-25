@@ -1,9 +1,11 @@
 package com.breezedobieefoods.features.mylearning
 
+import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.Context.LAYOUT_INFLATER_SERVICE
 import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
@@ -30,6 +32,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.airbnb.lottie.LottieAnimationView
+import com.breezedobieefoods.CustomStatic
 import com.breezedobieefoods.R
 import com.breezedobieefoods.app.NetworkConstant
 import com.breezedobieefoods.app.Pref
@@ -179,13 +182,13 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
 
     override fun onDestroy() {
         super.onDestroy()
-
+        println("tag_lf leaderboard onDestroy")
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         super.onCreateView(inflater, container, savedInstanceState)
         val view = inflater!!.inflate(R.layout.fragment_leaderboard_lms, container, false)
-
+        (mContext as Activity).requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         initView(view)
 
         //--------date+time store------//
@@ -343,17 +346,13 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
        // ll_lms_leaderboard.setOnClickListener(this)
         ll_lms_knowledgehub.setOnClickListener(this)
 
-       // iv_lms_leaderboard.setImageResource(R.drawable.leaderboard_new_filled_clr)
-        iv_lms_performance.setImageResource(R.drawable.my_performance_new)
-        iv_lms_mylearning.setImageResource(R.drawable.my_learning_new)
-        iv_lms_knowledgehub.setImageResource(R.drawable.knowledge_hub_new)
-        iv_lms_performance.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_mylearning.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
-        iv_lms_knowledgehub.setColorFilter(ContextCompat.getColor(mContext, R.color.black), android.graphics.PorterDuff.Mode.MULTIPLY)
+        iv_lms_performance.setImageResource(R.drawable.performance_insights_checked)
+        iv_lms_mylearning.setImageResource(R.drawable.open_book_lms_)
+        iv_lms_knowledgehub.setImageResource(R.drawable.set_of_books_lms)
 
-        tv_lms_performance.setTextColor(getResources().getColor(R.color.black))
+        tv_lms_performance.setTextColor(getResources().getColor(R.color.toolbar_lms))
         tv_lms_mylearning.setTextColor(getResources().getColor(R.color.black))
-      //  tv_lms_leaderboard.setTextColor(getResources().getColor(R.color.toolbar_lms))
+        tv_lms_leaderboard.setTextColor(getResources().getColor(R.color.black))
         tv_lms_knowledgehub.setTextColor(getResources().getColor(R.color.black))
 
         ll_lms_leaderboard.visibility =View.GONE
@@ -370,7 +369,8 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
         if (AppUtils.isOnline(mContext)){
             progress_wheel_frag_ldr_lms.spin()
             ll_lms_leaderboard_main.visibility = View.VISIBLE
-            showInitialPopupData()
+
+                showInitialPopupData()
 
             Handler().postDelayed(Runnable {
                 if (ownclick) {
@@ -384,15 +384,13 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
 
             }, 1500)
 
-
-
         } else{
             ll_lms_leaderboard_main.visibility = View.INVISIBLE
             (mContext as DashboardActivity).showSnackMessage(getString(R.string.no_internet))
         }
 
     }
-
+    //Code start for first time GIF show with rank number with congratulate GIF
     fun showInitialPopupData(){
         if (AppUtils.isOnline(mContext)) {
             val repository = LMSRepoProvider.getTopicList()
@@ -410,7 +408,8 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
                                 val userTotalScore = result.user_list.find { it.user_id == Pref.user_id!!.toInt() }!!.totalscore
                                 needscore = firstPositionTotalScore!!.toInt() - userTotalScore!!.toInt()
                                 progress_wheel_frag_ldr_lms.stopSpinning()
-                                showPopup(view!! , needscore)
+
+                                showPopup(requireView() , needscore ,userTotalScore)
 
                             } catch (e: Exception) {
                                 e.printStackTrace()
@@ -432,8 +431,8 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
         }
     }
 
-    private fun showPopup(view: View, needscore: Int) {
-
+    private fun showPopup(view: View, needscore: Int, userTotalScore: Int) {
+        println("tag_lf leaderboard onDestroy showing popup")
 
             // Inflate the popup_layout.xml
             val inflater: LayoutInflater = mContext.getSystemService(LAYOUT_INFLATER_SERVICE) as LayoutInflater
@@ -457,16 +456,17 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
             var typeFace: Typeface? = ResourcesCompat.getFont(requireContext(), R.font.remachinescript_personal_use)
             popup_title.setTypeface(typeFace)
 
-            popup_message.setText("You need only ${needscore} score to reach 1st position")
-                close_button.setOnClickListener {
+
+            if (needscore == 0){
+                popup_message.setText("You are the Top Performer with the highest score $userTotalScore. Awesome!")
+            }else{
+                popup_message.setText("You are only $needscore points to reach as Point as table topper.")
+            }
+         close_button.setOnClickListener {
                 popupWindow.dismiss()
             }
 
         popup_image.visibility =View.VISIBLE
-        /*Glide.with(mContext)
-            .load(R.drawable.c_)
-            .into(popup_image)*/
-
             // Set background dimming
             popupWindow.setBackgroundDrawable(ColorDrawable())
             popupWindow.isOutsideTouchable = false
@@ -476,7 +476,7 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
 
         Handler().postDelayed(Runnable {
             popupWindow.dismiss()
-        }, 6000)
+        }, 1800)
 
     }
 
@@ -484,6 +484,7 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
             private const val KEY_START_TIME = "startTime"
             private const val KEY_ACCUMULATED_TIME = "accumulatedTime"
             private const val KEY_LAST_DATE = "lastDate"
+            var loadedFrom:String = ""
 
         fun getInstance(objects: Any): LeaderboardLmsFrag {
             val fragment = LeaderboardLmsFrag()
@@ -526,10 +527,7 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
                 else{
                     rv_ldr_lms_list.visibility = View.INVISIBLE
                     ll_ldr_lms_head.visibility = View.INVISIBLE
-                   /* ll_no_data_root_leader.visibility = View.VISIBLE
-                    overall_firstTo_thirdrank.visibility = View.INVISIBLE
-                    iv_empty_data.visibility = View.INVISIBLE
-                    tv_nodata.visibility = View.INVISIBLE*/
+
                 }
 
             }
@@ -789,7 +787,7 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
             }
 
             ll_lms_mylearning.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyLearningTopicList, true, "")
+                (mContext as DashboardActivity).loadFragment(FragType.SearchLmsFrag, true, "")
                 popupWindow.dismiss()
             }
 
@@ -804,7 +802,7 @@ class LeaderboardLmsFrag : BaseFragment(), View.OnClickListener {
             }
 
             ll_lms_performance.id -> {
-                (mContext as DashboardActivity).loadFragment(FragType.MyPerformanceFrag, true, "")
+                (mContext as DashboardActivity).loadFragment(FragType.PerformanceInsightPage, true, "")
                 popupWindow.dismiss()
             }
         }
